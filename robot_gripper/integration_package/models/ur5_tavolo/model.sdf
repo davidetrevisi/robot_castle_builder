@@ -1,0 +1,53 @@
+<?xml version="1.0"?>
+<sdf version="1.7">
+  <model name="ur5_tavolo">
+    <link name="table_base">
+      <collision name="table_base_collision">
+        <geometry>
+          <mesh>
+            <uri>model://ur5_tavolo/meshes/tavolo.stl</uri>
+            <scale>0.001 0.001 0.001</scale>
+          </mesh>
+        </geometry>
+      </collision>
+      <visual name="table_base_visual">
+        <geometry>
+          <mesh>
+            <uri>model://ur5_tavolo/meshes/tavolo.stl</uri>
+            <scale>0.001 0.001 0.001</scale>       
+          </mesh>
+        </geometry>
+        <material>
+          <ambient>152 152 152 0.8</ambient>
+          <diffuse>0.5 0.5 0.5 1</diffuse>
+          <specular>0 0 0 1</specular>
+          <emissive>0 0 0 1</emissive>
+        </material>
+      </visual>
+    </link>
+    <!-- <link name="robot_base">
+      <pose>0.51 0.34 1.791 0 0 0</pose>
+      <collision name="robot_base_collision">
+        <geometry>
+          <box>
+            <size>0.2 0.2 0.002</size>
+          </box>
+        </geometry>
+      </collision>
+      <visual name="robot_base_visual">
+        <geometry>
+          <box>
+            <size>0.2 0.2 0.002</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>152 152 152 0.8</ambient>
+          <diffuse>0.5 0.5 0.5 1</diffuse>
+          <specular>0 0 0 1</specular>
+          <emissive>0 0 0 1</emissive>
+        </material>
+      </visual>
+    </link> -->
+    <static>true</static>
+  </model>
+</sdf>

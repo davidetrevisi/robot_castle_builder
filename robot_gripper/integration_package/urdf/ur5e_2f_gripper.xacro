@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://wiki.ros.org/xacro" name="robot_gripper">
+  <!-- Ur5 arm -->
+
+  <xacro:include filename="$(find ur_gazebo)/urdf/ur_macro.xacro"/>
+  
+  <!--Declare arguments -->
+  <xacro:arg name="joint_limit_params" default=""/>
+  <xacro:arg name="physical_params" default=""/>
+  <xacro:arg name="kinematics_params" default=""/>
+  <xacro:arg name="visual_params" default=""/>
+  <xacro:arg name="transmission_hw_interface" default="hardware_interface/EffortJointInterface"/>
+  <xacro:arg name="safety_limits" default="false"/>
+  <xacro:arg name="safety_pos_margin" default="0.15"/>
+  <xacro:arg name="safety_k_position" default="20"/>
+
+  <!-- Instantiate the Gazebo robot and pass it all the required arguments. -->
+  <xacro:ur_robot_gazebo
+    prefix=""
+    joint_limits_parameters_file="$(arg joint_limit_params)"
+    kinematics_parameters_file="$(arg kinematics_params)"
+    physical_parameters_file="$(arg physical_params)"
+    visual_parameters_file="$(arg visual_params)"
+    transmission_hw_interface="$(arg transmission_hw_interface)"
+    safety_limits="$(arg safety_limits)"
+    safety_pos_margin="$(arg safety_pos_margin)"
+    safety_k_position="$(arg safety_k_position)"
+  />
+
+  <!-- Robotiq 2f 85 gripper -->
+
+  <xacro:include filename="$(find robotiq_2f_85_gripper_gazebo)/urdf/robotiq_arg2f_85_macro.xacro" />
+
+  <xacro:robotiq_arg2f_85_gazebo 
+    prefix="ee_"
+    transmission_hw_interface="$(arg transmission_hw_interface)"
+  />
+
+  <!-- Link UR5 base to world -->
+
+  <link name="world"/>
+  <joint name="world_joint" type="fixed">
+    <parent link="world"/>
+    <child link="base_link"/>
+    <origin xyz="0.51 0.34 1.791" rpy="${-pi} 0 0"/>
+  </joint>
+
+  <!-- Attach the Gazebo model to Gazebo's world frame. -->
+  <joint name="robotiq_ur5_link" type="fixed">
+    <parent link="tool0"/>
+    <child link="ee_base_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+  
+</robot>
