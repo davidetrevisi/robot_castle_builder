@@ -9,6 +9,11 @@ project(robot_commands)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   integration_package
+  roscpp
+  moveit_ros_planning_interface 
+  moveit_ros_move_group
+  message_generation
+  std_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -52,11 +57,11 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+add_service_files(
+  FILES
+  Attach.srv
+  SetStatic.srv
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -66,10 +71,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs  # Or other packages containing msgs
-# )
+generate_messages(
+  DEPENDENCIES
+  std_msgs  # Or other packages containing msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -102,7 +107,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES robot_commands
+   LIBRARIES robot_commands
 #  CATKIN_DEPENDS integration_package
 #  DEPENDS system_lib
 )
@@ -131,7 +136,8 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/robot_commands_node.cpp)
+add_executable(add_collision src/add_collusions.cpp)
+add_executable(demo src/demo.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -144,9 +150,13 @@ include_directories(
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(${PROJECT_NAME}_node
-#   ${catkin_LIBRARIES}
-# )
+target_link_libraries(add_collisions
+ ${catkin_LIBRARIES}
+)
+
+target_link_libraries(demo
+ ${catkin_LIBRARIES}
+)
 
 #############
 ## Install ##

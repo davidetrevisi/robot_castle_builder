@@ -1,0 +1,51 @@
+<?xml version='1.0'?>
+<sdf version='1.7'>
+  <world name='default'>
+    <plugin name='ros_link_attacher_plugin' filename='libgazebo_ros_link_attacher.so'/>
+
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+    <include>
+      <uri>model://sun</uri>
+    </include>
+    <include>
+      <uri>model://laboratorio</uri>
+    </include>
+    <include>
+      <uri>model://table</uri>
+    </include>
+    <include>
+      <uri>model://cubo</uri>
+    </include>
+    <include>
+      <uri>model://parallelepipedo</uri>
+    </include>
+
+    <gravity>0 0 -9.8</gravity>
+
+    <state world_name='default'>
+      <model name='ground_plane'/>
+
+      <model name='laboratorio'>
+        <pose>-0.51 -0.34 0 0 -0 0</pose>
+      </model>
+
+      <model name='table'>
+        <pose>1.239533 0.060765 -0.148456 0 -0 0</pose>
+      </model>
+
+      <model name='parallelepipedo'>
+        <pose>0.454589 0.190526 0.90 0 0 0</pose>
+      </model>
+
+      <model name='cubo'>
+        <pose>0.454589 0.290526 0.90 0 0 0</pose>
+      </model>
+
+      <light name='sun'>
+        <pose>0 0 10 0 -0 0</pose>
+      </light>
+    </state>
+  </world>
+</sdf>

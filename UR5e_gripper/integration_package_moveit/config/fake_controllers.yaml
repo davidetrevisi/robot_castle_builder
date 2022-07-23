@@ -1,6 +1,5 @@
 controller_list:
-  - name: fake_ur5_arm_controller
-    type: $(arg fake_execution_type)
+  - name: fake_manipulator_controller
     joints:
       - shoulder_pan_joint
       - shoulder_lift_joint
@@ -8,10 +7,12 @@ controller_list:
       - wrist_1_joint
       - wrist_2_joint
       - wrist_3_joint
-  - name: fake_gripper_controller
-    type: $(arg fake_execution_type)
+  - name: fake_endeffector_controller
     joints:
-      - ee_finger_joint
-initial:  # Define initial robot poses per group
-  - group: ur5_arm
+      - soft_robotics_gripper_left_finger_joint1
+      - soft_robotics_gripper_right_finger_joint1
+initial: # Define initial robot poses.
+  - group: manipulator
     pose: home
+  - group: endeffector
+    pose: open
