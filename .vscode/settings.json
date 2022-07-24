@@ -1,5 +1,6 @@
 {
   "editor.formatOnPaste": false,
   "editor.formatOnSave": true,
-  "diffEditor.codeLens": true
+  "diffEditor.codeLens": true,
+  "cmake.configureOnOpen": false
 }

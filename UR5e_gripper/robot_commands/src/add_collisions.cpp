@@ -44,7 +44,6 @@ void printRED(string s)
  * @brief Function that load collision into the planning scene
  *
  */
-
 void addCollisions()
 {
     planning_scene_interface = new moveit::planning_interface::PlanningSceneInterface();
@@ -65,33 +64,38 @@ void addCollisions()
     electric_panel->id = "electric_panel";
     wall->id = "wall";
     top_plate->id = "top_plate";
+    plug->id = "plug";
 
     shape_msgs::SolidPrimitive primitive1, primitive2, primitive3, primitive4, primitive5;
+
     // defining desk's collision
     primitive1.type = primitive1.BOX;
     primitive1.dimensions.resize(3);
     primitive1.dimensions[0] = 0.85;
     primitive1.dimensions[1] = 2.5;
     primitive1.dimensions[2] = 0.8675;
+
     // defining electric panel's collision
     primitive2.type = primitive2.BOX;
     primitive2.dimensions.resize(3);
     primitive2.dimensions[0] = 0.175;
     primitive2.dimensions[1] = 1;
     primitive2.dimensions[2] = 0.175;
+
     // defining wall's collision
     primitive3.type = primitive3.BOX;
     primitive3.dimensions.resize(3);
     primitive3.dimensions[0] = 0.05;
     primitive3.dimensions[1] = 1;
     primitive3.dimensions[2] = 2;
+
     // defining top plate's collision
     primitive4.type = primitive4.BOX;
-    // primitive4.type = primitive3.BOX;
     primitive4.dimensions.resize(3);
     primitive4.dimensions[0] = 0.5;
     primitive4.dimensions[1] = 1;
     primitive4.dimensions[2] = 0.05;
+
     // defining electric plug's collision
     primitive5.type = primitive5.BOX;
     primitive5.dimensions.resize(3);
@@ -100,36 +104,42 @@ void addCollisions()
     primitive5.dimensions[2] = 0.09;
 
     geometry_msgs::Pose desk_pose, electric_panel_pose, wall_pose, top_plate_pose, plug_pose;
+
     // defining desk's pose
     desk_pose.orientation.w = -0.707;
     desk_pose.orientation.z = 0.707;
-    desk_pose.position.x = -0.75;
+    desk_pose.position.x = 0.75;
     desk_pose.position.y = 0.08;
-    desk_pose.position.z = Z_BASE_LINK - 0.867 / 2;
+    desk_pose.position.z = Z_DESK / 2;
+
     // defining electric panel's pose
     electric_panel_pose.orientation.w = -0.707;
     electric_panel_pose.orientation.z = 0.707;
     electric_panel_pose.position.x = 0;
     electric_panel_pose.position.y = -0.255;
-    electric_panel_pose.position.z = 0.92 - 0.075;
+    electric_panel_pose.position.z = Z_DESK + 0.075;
+
     // defining wall's pose
     wall_pose.orientation.z = 0.707;
     wall_pose.orientation.w = -0.707;
     wall_pose.position.x = 0;
     wall_pose.position.y = -0.375;
-    wall_pose.position.z = 1;
+    wall_pose.position.z = Z_BASE_LINK / 2;
+
     // defining top plate's pose
     top_plate_pose.orientation.z = 0.707;
     top_plate_pose.orientation.w = -0.707;
     top_plate_pose.position.x = 0;
     top_plate_pose.position.y = -0.15;
-    top_plate_pose.position.z = -0.026;
+    top_plate_pose.position.z = Z_BASE_LINK + 0.026;
+
     // defining plug's pose
     plug_pose.orientation.z = 0.707;
     plug_pose.orientation.w = -0.707;
     plug_pose.position.x = 0.44;
     plug_pose.position.y = -0.2;
-    plug_pose.position.z = 0.92 - 0.06;
+    plug_pose.position.z = Z_DESK + 0.06;
+
     // push collisions into vector
     desk->primitives.push_back(primitive1);
     desk->primitive_poses.push_back(desk_pose);
