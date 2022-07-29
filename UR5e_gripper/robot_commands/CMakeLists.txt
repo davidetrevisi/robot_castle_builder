@@ -119,7 +119,7 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  include
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -138,6 +138,7 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(add_collisions src/add_collisions.cpp)
 add_executable(demo src/demo.cpp)
+add_executable(robot_control_node src/robot_control.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -155,6 +156,10 @@ target_link_libraries(add_collisions
 )
 
 target_link_libraries(demo
+ ${catkin_LIBRARIES}
+)
+
+target_link_libraries(robot_control_node
  ${catkin_LIBRARIES}
 )
 

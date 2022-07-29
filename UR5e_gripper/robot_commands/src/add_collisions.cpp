@@ -1,9 +1,9 @@
 /**
  * @file add_collisions.cpp
- * @author Davide Nardi
+ * @author Davide Trevisi, Davide Nardi
  * @brief Ros node that add laboratory's collisions to moveit environment
- * @version 0.1
- * @date 2022-06-22
+ * @version 0.2
+ * @date 2022-07-21
  *
  * @copyright Copyright (c) 2022
  *
@@ -35,15 +35,11 @@ moveit_msgs::CollisionObject *wall;
 moveit_msgs::CollisionObject *top_plate;
 moveit_msgs::CollisionObject *plug;
 
-void printRED(string s)
-{
-    cout << "\033[1;92m" << s << "\033[0m\n";
-}
-
 /**
  * @brief Function that load collision into the planning scene
  *
  */
+
 void addCollisions()
 {
     planning_scene_interface = new moveit::planning_interface::PlanningSceneInterface();
