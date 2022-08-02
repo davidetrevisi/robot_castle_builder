@@ -82,7 +82,7 @@
   <!-- Attach gripper to robot arm -->
 
   <joint name="soft_robotics_gripper_base_joint" type="fixed">
-    <origin xyz="0 0 0" rpy=" 0 0 ${-pi/2}" />
+    <origin xyz="0 0 0" rpy=" 0 0 ${pi/2}" />
     <parent link="tool0" />
     <child link="soft_robotics_gripper_base_link" />
   </joint>

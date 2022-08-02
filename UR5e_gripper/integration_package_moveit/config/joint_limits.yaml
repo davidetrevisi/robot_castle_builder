@@ -32,3 +32,15 @@ joint_limits:
     max_velocity: 3.1415926535897931
     has_acceleration_limits: false
     max_acceleration: 0
+    #max_position: !degrees 90.0
+    #min_position: !degrees -90.0
+  soft_robotics_gripper_left_finger_joint1:
+    has_velocity_limits: true
+    max_velocity: 1
+    has_acceleration_limits: false
+    max_acceleration: 0
+  soft_robotics_gripper_right_finger_joint1:
+    has_velocity_limits: true
+    max_velocity: 1
+    has_acceleration_limits: false
+    max_acceleration: 0

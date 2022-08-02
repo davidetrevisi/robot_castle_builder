@@ -32,6 +32,7 @@ moveit::planning_interface::PlanningSceneInterface *planning_scene_interface;
 moveit_msgs::CollisionObject *desk;
 moveit_msgs::CollisionObject *electric_panel;
 moveit_msgs::CollisionObject *wall;
+moveit_msgs::CollisionObject *front_wall;
 moveit_msgs::CollisionObject *top_plate;
 moveit_msgs::CollisionObject *plug;
 
@@ -47,18 +48,21 @@ void addCollisions()
     desk = new moveit_msgs::CollisionObject();
     electric_panel = new moveit_msgs::CollisionObject();
     wall = new moveit_msgs::CollisionObject();
+    front_wall = new moveit_msgs::CollisionObject();
     top_plate = new moveit_msgs::CollisionObject();
     plug = new moveit_msgs::CollisionObject();
 
     desk->header.frame_id = arm_group->getPlanningFrame();
     electric_panel->header.frame_id = arm_group->getPlanningFrame();
     wall->header.frame_id = arm_group->getPlanningFrame();
+    front_wall->header.frame_id = arm_group->getPlanningFrame();
     top_plate->header.frame_id = arm_group->getPlanningFrame();
     plug->header.frame_id = arm_group->getPlanningFrame();
 
     desk->id = "desk";
     electric_panel->id = "electric_panel";
     wall->id = "wall";
+    front_wall->id = "front_wall";
     top_plate->id = "top_plate";
     plug->id = "plug";
 
@@ -99,7 +103,7 @@ void addCollisions()
     primitive5.dimensions[1] = 0.12;
     primitive5.dimensions[2] = 0.09;
 
-    geometry_msgs::Pose desk_pose, electric_panel_pose, wall_pose, top_plate_pose, plug_pose;
+    geometry_msgs::Pose desk_pose, electric_panel_pose, wall_pose, front_wall_pose, top_plate_pose, plug_pose;
 
     // defining desk's pose
     desk_pose.orientation.w = -0.707;
@@ -121,6 +125,13 @@ void addCollisions()
     wall_pose.position.x = 0;
     wall_pose.position.y = -0.375;
     wall_pose.position.z = Z_BASE_LINK / 2;
+
+    // defining front wall's pose
+    front_wall_pose.orientation.z = 0.707;
+    front_wall_pose.orientation.w = -0.707;
+    front_wall_pose.position.x = 0;
+    front_wall_pose.position.y = 0.60;
+    front_wall_pose.position.z = Z_BASE_LINK / 2;
 
     // defining top plate's pose
     top_plate_pose.orientation.z = 0.707;
@@ -149,6 +160,10 @@ void addCollisions()
     wall->primitive_poses.push_back(wall_pose);
     wall->operation = wall->ADD;
 
+    front_wall->primitives.push_back(primitive3);
+    front_wall->primitive_poses.push_back(front_wall_pose);
+    front_wall->operation = wall->ADD;
+
     top_plate->primitives.push_back(primitive4);
     top_plate->primitive_poses.push_back(top_plate_pose);
     top_plate->operation = top_plate->ADD;
@@ -163,6 +178,7 @@ void addCollisions()
     collision_objects.push_back(*desk);
     collision_objects.push_back(*electric_panel);
     collision_objects.push_back(*wall);
+    collision_objects.push_back(*front_wall);
     collision_objects.push_back(*top_plate);
     collision_objects.push_back(*plug);
 
@@ -178,11 +194,13 @@ void addCollisions()
 void removeCollision(int sig)
 {
     cout << endl
-         << "Deleting collisions";
+         << "Deleting collisions"
+         << endl;
     std::vector<std::string> object_ids;
     object_ids.push_back(desk->id);
     object_ids.push_back(electric_panel->id);
     object_ids.push_back(wall->id);
+    object_ids.push_back(front_wall->id);
     object_ids.push_back(top_plate->id);
     object_ids.push_back(plug->id);
     planning_scene_interface->removeCollisionObjects(object_ids);

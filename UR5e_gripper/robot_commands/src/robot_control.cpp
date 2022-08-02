@@ -16,6 +16,8 @@
 #include <moveit_msgs/OrientationConstraint.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 
+#include <signal.h>
+
 #include <gazebo_ros_link_attacher/Attach.h>
 #include <gazebo_ros_link_attacher/AttachRequest.h>
 #include <gazebo_ros_link_attacher/AttachResponse.h>
@@ -26,12 +28,16 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <std_msgs/String.h>
 #include <std_srvs/Trigger.h>
+#include <castle_builder/Positions.h>
 
 #define SIMULATION true
 #define Z_BASE_LINK 1.79
 #define Z_DESK 0.867
 #define Z_MIN 1.02
 #define Z_TOP 1.07
+
+castle_builder::Positions pos_msg;
+bool position_flag = false;
 
 using namespace std;
 using namespace Eigen;
@@ -75,7 +81,7 @@ void setup()
     // Initialize groups and plans
 
     arm_group = new moveit::planning_interface::MoveGroupInterface(PLANNING_GROUP_ARM);
-    arm_group->setPlanningTime(15.0);
+    arm_group->setPlanningTime(20.0);
     arm_group->setMaxVelocityScalingFactor(0.1);
     arm_group->setMaxAccelerationScalingFactor(0.1);
     arm_motion_plan = new moveit::planning_interface::MoveGroupInterface::Plan();
@@ -254,22 +260,23 @@ void robot_constraints()
 
     wrist_2_jcm.joint_name = "wrist_2_joint";
     wrist_2_jcm.position = M_PI_2;
-    wrist_2_jcm.tolerance_above = 0.3;
-    wrist_2_jcm.tolerance_below = 0.3;
+    wrist_2_jcm.tolerance_above = M_PI_4;
+    wrist_2_jcm.tolerance_below = M_PI_4;
     wrist_2_jcm.weight = 1.0;
 
     wrist_3_jcm.joint_name = "wrist_3_joint";
     wrist_3_jcm.position = 0;
-    wrist_3_jcm.tolerance_above = M_PI;
+    wrist_3_jcm.tolerance_above = 0;
     wrist_3_jcm.tolerance_below = M_PI;
     wrist_3_jcm.weight = 1.0;
 
-    wrist_3_ocm.link_name = "wrist_3_link";
-    wrist_3_ocm.header.frame_id = "world";
-    wrist_3_ocm.orientation.y = 1;
-    wrist_3_ocm.absolute_x_axis_tolerance = 0.02;
-    wrist_3_ocm.absolute_y_axis_tolerance = 0.01;
-    wrist_3_ocm.absolute_z_axis_tolerance = M_PI;
+    wrist_3_ocm.link_name = "tool0";
+    wrist_3_ocm.header.frame_id = "base_link";
+    // wrist_3_ocm.orientation.w = 0.556;
+    wrist_3_ocm.orientation.x = -1;
+    wrist_3_ocm.absolute_x_axis_tolerance = 0;
+    wrist_3_ocm.absolute_y_axis_tolerance = 0;
+    wrist_3_ocm.absolute_z_axis_tolerance = 0.1;
     wrist_3_ocm.weight = 1.0;
 
     moveit_msgs::Constraints robot_constraints;
@@ -284,6 +291,36 @@ void robot_constraints()
 
     arm_group->clearPathConstraints();
     arm_group->setPathConstraints(robot_constraints);
+}
+
+/**
+ * @brief Function that set the robot target position and execute the motion
+ *
+ * @param target set a target position for the EE
+ */
+
+void motion_plan(geometry_msgs::Pose target)
+{
+    cout << "\033[1;34mMoving towards:\033[0m\n"
+         << endl;
+    cout << "\033[1;34mx: " << target.position.x << "\033[0m" << endl;
+    cout << "\033[1;34my: " << target.position.y << "\033[0m" << endl;
+    cout << "\033[1;34mz: " << target.position.z << "\033[0m" << endl;
+    arm_group->setPoseTarget(target);
+
+    bool success = (arm_group->plan(*arm_motion_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+
+    if (success)
+    {
+        printGREEN("Motion plan updated!");
+        cout << endl
+             << "Motion plan is now executing!";
+        arm_group->move();
+    }
+    else
+    {
+        printGREEN("Error: Motion plan failed!");
+    }
 }
 
 /**
@@ -313,7 +350,6 @@ void execute_Cartesian_Path(geometry_msgs::Pose target)
     {
         cout << "Trajectory error!" << endl;
         ros::Duration(1).sleep();
-        exit(1);
     }
 
     if (fraction == 1)
@@ -321,37 +357,6 @@ void execute_Cartesian_Path(geometry_msgs::Pose target)
         arm_motion_plan = new moveit::planning_interface::MoveGroupInterface::Plan();
         arm_motion_plan->trajectory_ = trajectory;
         arm_group->execute(*arm_motion_plan);
-    }
-}
-
-/**
- * @brief Function that set the robot target position and execute the motion
- *
- * @param target set a target position for the EE
- */
-
-void motion_plan(geometry_msgs::Pose target)
-{
-    cout << "\033[1;34mMoving towards:\033[0m\n"
-         << endl;
-    cout << "\033[1;34mx: " << target.position.x << "\033[0m" << endl;
-    cout << "\033[1;34my: " << target.position.y << "\033[0m" << endl;
-    cout << "\033[1;34mz: " << target.position.z << "\033[0m" << endl;
-    arm_group->setPoseTarget(target);
-
-    bool success = (arm_group->plan(*arm_motion_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
-
-    if (success)
-    {
-        printGREEN("Motion plan updated!");
-        cout << endl
-             << "Motion plan is now executing!";
-        arm_group->move();
-    }
-    else
-    {
-        printGREEN("Error: Motion plan failed! Computing cartesian path instead");
-        execute_Cartesian_Path(target);
     }
 }
 
@@ -438,144 +443,163 @@ void close_gripper(ros::Publisher pub, ros::ServiceClient client, string model)
 }
 
 /**
+ * @brief Populate information about the initial and final positions of the block to pick
+ * and the block type from the received message
+ *
+ * @param msg Msg that come from the castle_builder node
+ */
+
+void position_callback(const castle_builder::Positions::ConstPtr &msg)
+{
+    for (int i = 0; i < 3; i++)
+    {
+        pos_msg.block_pos[i] = msg->block_pos[i];
+        pos_msg.block_rpy[i] = msg->block_rpy[i];
+        pos_msg.target_pos[i] = msg->target_pos[i];
+        pos_msg.target_rpy[i] = msg->target_rpy[i];
+        pos_msg.cube = msg->cube;
+    }
+    position_flag = true;
+}
+
+/**
  * @brief Demo of the motion and gripping
  *
  * @param client Ros client that call gripper_controller_node for sending cmd to gripper
  * @param gripper_pub
  */
 
-void demo_movement(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_client_detach, ros::Publisher gripper_pub)
+void pick_place(ros::ServiceClient client, ros::Publisher gripper_pub)
 {
-    geometry_msgs::Pose target, object1, object2;
-    vector<double> target_rpy;
+    geometry_msgs::Pose target, object;
+    vector<double> current_rpy;
     tf2::Quaternion target_q;
 
     // Add joint constraints to the planner (currently in development)
     robot_constraints();
 
-    // Go to cube
-    target.position.x = 0.454589;
-    target.position.y = 0.290526;
+    // Go to pick object
+    target.position.x = pos_msg.block_pos[0];
+    cout << "x::" << target.position.x;
+    target.position.y = pos_msg.block_pos[1];
+    cout << "y::" << target.position.y;
     target.position.z = Z_TOP;
 
-    target_q.setX(-1);
-    target_q.setY(0);
-    target_q.setZ(0);
-    target_q.setW(0);
-    target_q.normalize();
-
-    target.orientation = tf2::toMsg(target_q);
+    // Orientation
 
     motion_plan(target);
-    ros::Duration(0.5).sleep();
+    // execute_Cartesian_Path(target);
+    ros::Duration(0.2).sleep();
 
     // Lower EE
     target.position.z = Z_MIN;
     execute_Cartesian_Path(target);
-    ros::Duration(0.5).sleep();
-    close_gripper(gripper_pub, demo_client_attach, "cubo");
-    ros::Duration(0.5).sleep();
+    ros::Duration(0.2).sleep();
+
+    close_gripper(gripper_pub, client, "cubo");
+    ros::Duration(0.2).sleep();
+
     // Add object to gripper collision
-    object1.position.x = 0.454589;
-    object1.position.y = 0.290526;
-    object1.position.z = Z_DESK + 0.025 / 2;
-    object1.orientation.x = -1.0;
-    add_cube_collision(object1, true, cube_index);
+    object.position.x = target.position.x;
+    object.position.y = target.position.y;
+    object.position.z = Z_DESK + 0.025 / 2;
+    object.orientation.x = -1.0;
+
+    if (pos_msg.cube)
+    {
+        add_cube_collision(object, true, cube_index);
+    }
+    else
+    {
+        add_parallelepiped_collision(object, true, cube_index);
+    }
 
     // Raise EE
     target.position.z = Z_TOP;
     execute_Cartesian_Path(target);
-    ros::Duration(0.5).sleep();
+    ros::Duration(0.2).sleep();
 
     // Go to target location
-    target.position.x = 0.054589;
-    target.position.y = 0.290526;
-    target.position.z = Z_TOP;
+    target.position.x = pos_msg.target_pos[0];
+    target.position.y = pos_msg.target_pos[1];
+    target.position.z = pos_msg.target_pos[2] + 0.5;
 
-    motion_plan(target);
-    ros::Duration(0.5).sleep();
+    // Orientation
+
+    // motion_plan(target);
+    execute_Cartesian_Path(target);
+    ros::Duration(0.2).sleep();
 
     // Lower EE
     target.position.z = Z_MIN + 0.01;
     execute_Cartesian_Path(target);
-    ros::Duration(0.5).sleep();
-    open_gripper(gripper_pub, demo_client_detach, "cubo");
-    ros::Duration(0.5).sleep();
+    open_gripper(gripper_pub, client, "cubo");
+    ros::Duration(0.2).sleep();
+
     // Remove object from gripper collision
-    remove_cube_collision(true, cube_index);
+    if (pos_msg.cube)
+    {
+        remove_cube_collision(true, cube_index);
+    }
+    else
+    {
+        remove_parallelepiped_collision(true, parallelepiped_index);
+    }
+
     // Add object to world collision
-    object1.position.x = 0.054589;
-    object1.position.y = 0.290526;
-    object1.position.z = Z_DESK + 0.025 / 2;
-    object1.orientation.x = -1.0;
-    add_cube_collision(object1, false, cube_index);
+    object.position.x = pos_msg.target_pos[0];
+    object.position.y = pos_msg.target_pos[1];
+    object.position.z = pos_msg.target_pos[2] + 0.025 / 2;
+    object.orientation.x = -1.0;
+
+    if (pos_msg.cube)
+    {
+        add_cube_collision(object, false, cube_index);
+    }
+    else
+    {
+        add_parallelepiped_collision(object, false, cube_index);
+    }
 
     // Raise EE
-    target.position.z = Z_TOP;
+    target.position.z = pos_msg.target_pos[2] + 0.5;
     execute_Cartesian_Path(target);
-    ros::Duration(0.5).sleep();
+    ros::Duration(0.2).sleep();
+
     // Update index
-    cube_index++;
+    if (pos_msg.cube)
+    {
+        cube_index++;
+    }
+    else
+    {
+        parallelepiped_index++;
+    }
+}
 
-    // Go to parallelepiped
-    target.position.x = 0.454589;
-    target.position.y = 0.190526;
-    target.position.z = Z_TOP;
+/**
+ * @brief Unload collision from moveit when node is stopped by signal
+ *
+ * @param sig Signal number
+ */
 
-    motion_plan(target);
-    ros::Duration(0.5).sleep();
-
-    // Lower EE
-    target.position.z = Z_MIN;
-    execute_Cartesian_Path(target);
-    ros::Duration(0.5).sleep();
-    close_gripper(gripper_pub, demo_client_attach, "parallelepipedo");
-    ros::Duration(0.5).sleep();
-    // Add object to gripper collision
-    object2.position.x = 0.454589;
-    object2.position.y = 0.190526;
-    object2.position.z = Z_DESK + 0.025 / 2;
-    object2.orientation.x = -1.0;
-    add_parallelepiped_collision(object2, true, parallelepiped_index);
-
-    // Raise EE
-    target.position.z = Z_TOP;
-    execute_Cartesian_Path(target);
-    ros::Duration(0.5).sleep();
-
-    // Go to target location
-    target.position.x = 0.054589;
-    target.position.y = 0.190526;
-    target.position.z = 0.90;
-
-    motion_plan(target);
-    ros::Duration(0.5).sleep();
-
-    // Lower EE
-    target.position.z = Z_MIN + 0.01;
-    execute_Cartesian_Path(target);
-    ros::Duration(0.5).sleep();
-    open_gripper(gripper_pub, demo_client_detach, "parallelepipedo");
-    ros::Duration(0.5).sleep();
-    // Remove object from gripper collision
-    remove_parallelepiped_collision(true, parallelepiped_index);
-    // Add object to world collision
-    object2.position.x = 0.054589;
-    object2.position.y = 0.190526;
-    object2.position.z = Z_DESK + 0.025 / 2;
-    object2.orientation.x = -1.0;
-    add_parallelepiped_collision(object2, false, parallelepiped_index);
-
-    // Raise EE
-    target.position.z = Z_TOP;
-    execute_Cartesian_Path(target);
-    ros::Duration(0.5).sleep();
-    // Update index
-    parallelepiped_index++;
+void removeCollision(int sig)
+{
+    cout << endl
+         << "Deleting collisions";
 
     // Remove object from world collision
-    remove_parallelepiped_collision(false, parallelepiped_index - 1);
-    remove_cube_collision(false, cube_index - 1);
+    for (int i = 1; i < cube_index; i++)
+    {
+        remove_cube_collision(false, i - 1);
+    }
+
+    for (int i = 1; i < parallelepiped_index; i++)
+    {
+        remove_parallelepiped_collision(false, i - 1);
+    }
+
+    ros::shutdown();
 }
 
 /////////////////////////
@@ -584,6 +608,7 @@ int main(int argc, char **args)
 {
     ros::init(argc, args, "move_group_interface");
     ros::NodeHandle n;
+    signal(SIGINT, removeCollision);
     ros::AsyncSpinner spinner(1);
     ros::Publisher gripper_pub = n.advertise<std_msgs::String>("gripper_controller_cmd", 10);
     spinner.start();
@@ -591,6 +616,7 @@ int main(int argc, char **args)
 
     // Going to home position
     arm_group->setJointValueTarget(arm_group->getNamedTargetValues("home"));
+    bool success = (arm_group->plan(*arm_motion_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
     arm_group->move();
 
     ros::ServiceClient attach_srv, detach_srv, client;
@@ -605,7 +631,16 @@ int main(int argc, char **args)
         client = n.serviceClient<std_srvs::Trigger>("/ur_hardware_interface/resend_robot_program");
     }
 
+    ros::Subscriber sub = n.subscribe("/node/castle_builder_node", 1, position_callback);
+
     printGREEN("Ready");
 
-    demo_movement(attach_srv, detach_srv, gripper_pub);
+    while (ros::ok())
+    {
+        if (position_flag)
+        {
+            pick_place(client, gripper_pub);
+            position_flag = false;
+        }
+    }
 }
