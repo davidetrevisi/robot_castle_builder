@@ -11,10 +11,8 @@
 
 #include <iostream>
 #include <moveit/move_group_interface/move_group_interface.h>
-#include "ros/ros.h"
-#include <cstdlib>
+#include <ros/ros.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <tf2/LinearMath/Quaternion.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <moveit_msgs/CollisionObject.h>
 #include <signal.h>

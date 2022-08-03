@@ -270,13 +270,12 @@ void robot_constraints()
     wrist_3_jcm.tolerance_below = M_PI;
     wrist_3_jcm.weight = 1.0;
 
-    wrist_3_ocm.link_name = "tool0";
-    wrist_3_ocm.header.frame_id = "base_link";
-    // wrist_3_ocm.orientation.w = 0.556;
-    wrist_3_ocm.orientation.x = -1;
-    wrist_3_ocm.absolute_x_axis_tolerance = 0;
-    wrist_3_ocm.absolute_y_axis_tolerance = 0;
-    wrist_3_ocm.absolute_z_axis_tolerance = 0.1;
+    wrist_3_ocm.link_name = "wrist_3_link";
+    wrist_3_ocm.header.frame_id = "world";
+    wrist_3_ocm.orientation.y = 1;
+    wrist_3_ocm.absolute_x_axis_tolerance = 0.02;
+    wrist_3_ocm.absolute_y_axis_tolerance = 0.01;
+    wrist_3_ocm.absolute_z_axis_tolerance = M_PI;
     wrist_3_ocm.weight = 1.0;
 
     moveit_msgs::Constraints robot_constraints;
@@ -291,36 +290,6 @@ void robot_constraints()
 
     arm_group->clearPathConstraints();
     arm_group->setPathConstraints(robot_constraints);
-}
-
-/**
- * @brief Function that set the robot target position and execute the motion
- *
- * @param target set a target position for the EE
- */
-
-void motion_plan(geometry_msgs::Pose target)
-{
-    cout << "\033[1;34mMoving towards:\033[0m\n"
-         << endl;
-    cout << "\033[1;34mx: " << target.position.x << "\033[0m" << endl;
-    cout << "\033[1;34my: " << target.position.y << "\033[0m" << endl;
-    cout << "\033[1;34mz: " << target.position.z << "\033[0m" << endl;
-    arm_group->setPoseTarget(target);
-
-    bool success = (arm_group->plan(*arm_motion_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
-
-    if (success)
-    {
-        printGREEN("Motion plan updated!");
-        cout << endl
-             << "Motion plan is now executing!";
-        arm_group->move();
-    }
-    else
-    {
-        printGREEN("Error: Motion plan failed!");
-    }
 }
 
 /**
@@ -357,6 +326,37 @@ void execute_Cartesian_Path(geometry_msgs::Pose target)
         arm_motion_plan = new moveit::planning_interface::MoveGroupInterface::Plan();
         arm_motion_plan->trajectory_ = trajectory;
         arm_group->execute(*arm_motion_plan);
+    }
+}
+
+/**
+ * @brief Function that set the robot target position and execute the motion
+ *
+ * @param target set a target position for the EE
+ */
+
+void motion_plan(geometry_msgs::Pose target)
+{
+    cout << "\033[1;34mMoving towards:\033[0m\n"
+         << endl;
+    cout << "\033[1;34mx: " << target.position.x << "\033[0m" << endl;
+    cout << "\033[1;34my: " << target.position.y << "\033[0m" << endl;
+    cout << "\033[1;34mz: " << target.position.z << "\033[0m" << endl;
+    arm_group->setPoseTarget(target);
+
+    bool success = (arm_group->plan(*arm_motion_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+
+    if (success)
+    {
+        printGREEN("Motion plan updated!");
+        cout << endl
+             << "Motion plan is now executing!";
+        arm_group->move();
+    }
+    else
+    {
+        printGREEN("Error: Motion plan failed! Computing cartesian path instead");
+        execute_Cartesian_Path(target);
     }
 }
 
@@ -475,9 +475,6 @@ void pick_place(ros::ServiceClient client, ros::Publisher gripper_pub)
     vector<double> current_rpy;
     tf2::Quaternion target_q;
 
-    // Add joint constraints to the planner (currently in development)
-    robot_constraints();
-
     // Go to pick object
     target.position.x = pos_msg.block_pos[0];
     cout << "x::" << target.position.x;
@@ -487,17 +484,25 @@ void pick_place(ros::ServiceClient client, ros::Publisher gripper_pub)
 
     // Orientation
 
+    /*
+    target_q.setX(-1);
+    target_q.setY(0);
+    target_q.setZ(0);
+    target_q.setW(0);
+    target_q.normalize();
+
+    target.orientation = tf2::toMsg(target_q);*/
+
     motion_plan(target);
-    // execute_Cartesian_Path(target);
-    ros::Duration(0.2).sleep();
+    ros::Duration(0.5).sleep();
 
     // Lower EE
     target.position.z = Z_MIN;
     execute_Cartesian_Path(target);
-    ros::Duration(0.2).sleep();
+    ros::Duration(0.5).sleep();
 
     close_gripper(gripper_pub, client, "cubo");
-    ros::Duration(0.2).sleep();
+    ros::Duration(0.5).sleep();
 
     // Add object to gripper collision
     object.position.x = target.position.x;
@@ -517,24 +522,31 @@ void pick_place(ros::ServiceClient client, ros::Publisher gripper_pub)
     // Raise EE
     target.position.z = Z_TOP;
     execute_Cartesian_Path(target);
-    ros::Duration(0.2).sleep();
+    ros::Duration(0.5).sleep();
 
     // Go to target location
     target.position.x = pos_msg.target_pos[0];
     target.position.y = pos_msg.target_pos[1];
     target.position.z = pos_msg.target_pos[2] + 0.5;
 
-    // Orientation
+    /*target_q.setX(-1);
+    target_q.setY(0);
+    target_q.setZ(0);
+    target_q.setW(0);
+    target_q.normalize();
 
-    // motion_plan(target);
-    execute_Cartesian_Path(target);
-    ros::Duration(0.2).sleep();
+    target.orientation = tf2::toMsg(target_q);*/
+
+    motion_plan(target);
+    ros::Duration(0.5).sleep();
 
     // Lower EE
     target.position.z = Z_MIN + 0.01;
     execute_Cartesian_Path(target);
+    ros::Duration(0.5).sleep();
+
     open_gripper(gripper_pub, client, "cubo");
-    ros::Duration(0.2).sleep();
+    ros::Duration(0.5).sleep();
 
     // Remove object from gripper collision
     if (pos_msg.cube)
@@ -564,7 +576,7 @@ void pick_place(ros::ServiceClient client, ros::Publisher gripper_pub)
     // Raise EE
     target.position.z = pos_msg.target_pos[2] + 0.5;
     execute_Cartesian_Path(target);
-    ros::Duration(0.2).sleep();
+    ros::Duration(0.5).sleep();
 
     // Update index
     if (pos_msg.cube)
@@ -632,6 +644,9 @@ int main(int argc, char **args)
     }
 
     ros::Subscriber sub = n.subscribe("/node/castle_builder_node", 1, position_callback);
+
+    // Add joint constraints to the planner (currently in development)
+    robot_constraints();
 
     printGREEN("Ready");
 

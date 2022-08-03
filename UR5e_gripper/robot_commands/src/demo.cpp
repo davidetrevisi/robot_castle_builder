@@ -473,8 +473,10 @@ void demo_movement(ros::ServiceClient demo_client_attach, ros::ServiceClient dem
     target.position.z = Z_MIN;
     execute_Cartesian_Path(target);
     ros::Duration(0.5).sleep();
+
     close_gripper(gripper_pub, demo_client_attach, "cubo");
     ros::Duration(0.5).sleep();
+
     // Add object to gripper collision
     object1.position.x = 0.454589;
     object1.position.y = 0.290526;
@@ -499,8 +501,10 @@ void demo_movement(ros::ServiceClient demo_client_attach, ros::ServiceClient dem
     target.position.z = Z_MIN + 0.01;
     execute_Cartesian_Path(target);
     ros::Duration(0.5).sleep();
+
     open_gripper(gripper_pub, demo_client_detach, "cubo");
     ros::Duration(0.5).sleep();
+
     // Remove object from gripper collision
     remove_cube_collision(true, cube_index);
     // Add object to world collision
