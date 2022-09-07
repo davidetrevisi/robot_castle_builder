@@ -25,10 +25,8 @@ def callback(data):
     l = f.read(2024)
     while (l):
         s.send(l)
-        print(l)
         l = f.read(2024)
     f.close()
-    print(str(data))
 
     # spin() simply keeps python from exiting until this node is stopped
 if __name__ == '__main__':

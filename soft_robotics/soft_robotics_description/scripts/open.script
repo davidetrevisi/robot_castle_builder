@@ -99,9 +99,8 @@ def gripper_control():
   #   Source: SRI_coDrive, 1.1.1, Soft Robotics Inc
   #   Type: SRI coDrive
   $ 2 "coDrive Grip"
-  #coDrive_grip()
   coDrive_release()
-# end: URCap Program Node
+  # end: URCap Program Node
   end
   coDrive_stop()
 end

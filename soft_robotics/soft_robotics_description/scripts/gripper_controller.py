@@ -23,13 +23,12 @@ def callback(data):
         script = path + 'close.script'
     else:
         print("Invalid argument!")
-    f = open(script, "rb")  # Robotiq Gripper
+    f = open(script, "rb")
     l = f.read(2024)
     while (l):
         s.send(l)
         l = f.read(2024)
     f.close()
-    print(str(data.data))
 
 
 def listener():
