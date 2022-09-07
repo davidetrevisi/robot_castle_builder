@@ -1,7 +1,7 @@
 <launch>
 
   <!-- OMPL Plugin for MoveIt! -->
-  <arg name="planning_plugin" value="ompl_interface/OMPLPlanner" />
+  <arg name="planning_plugin" value="pilz_industrial_motion_planner::CommandPlanner" />
 
   <!-- The request adapters (plugins) used when planning with OMPL.
        ORDER MATTERS -->
@@ -17,7 +17,5 @@
   <param name="planning_plugin" value="$(arg planning_plugin)" />
   <param name="request_adapters" value="$(arg planning_adapters)" />
   <param name="start_state_max_bounds_error" value="$(arg start_state_max_bounds_error)" />
-
-  <rosparam command="load" file="$(find integration_package_moveit)/config/ompl_planning.yaml"/>
 
 </launch>
