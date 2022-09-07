@@ -13,9 +13,6 @@
       <uri>model://laboratorio</uri>
     </include>
     <include>
-      <uri>model://table</uri>
-    </include>
-    <include>
       <uri>model://cubo</uri>
     </include>
     <include>
@@ -29,10 +26,6 @@
 
       <model name='laboratorio'>
         <pose>-0.51 -0.34 0 0 -0 0</pose>
-      </model>
-
-      <model name='table'>
-        <pose>1.239533 0.060765 -0.148456 0 -0 0</pose>
       </model>
 
       <model name='parallelepipedo'>
