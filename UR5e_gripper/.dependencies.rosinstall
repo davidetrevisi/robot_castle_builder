@@ -1,0 +1,11 @@
+- git:
+    uri: https://github.com/ros-industrial/universal_robot.git
+    local-name: Universal_Robot
+    version: melodic-devel-staging
+- git:
+    uri: https://github.com/UniversalRobots/Universal_Robots_ROS_Driver.git
+    local-name: Universal_Robot_ROS_Driver
+- git:
+    uri: https://github.com/pal-robotics/gazebo_ros_link_attacher.git
+    local-name: gazebo_ros_link_attacher
+    version: melodic-devel
