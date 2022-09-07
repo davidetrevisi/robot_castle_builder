@@ -10,30 +10,23 @@ Il robot utilizzato è un UR5e con un gripper a 2 dita azionato ad aria compress
 
 ### Struttura del progetto
 
-I pacchetti di catkin presenti nella repository sono:
+I pacchetti da cui dipende la repository sono:
 
-- [Submodule] **Universal_Robot** e relativi: contengono tutte le definizioni e file relativi al robot UR5e in uso
-- [Submodule] **Universal_Robot_ROS_Driver** e relativi: contengono tutti i file necessari all'utilizzo del robot nell'ambiente reale
-- [Submodule] **gazebo_ros_link_attacher**: necessario nell'ambiente simulato poiché permette di unire due oggetti in Gazebo tramite link a runtime
+- **Universal_Robot** e relativi: contengono tutte le definizioni e file relativi al robot UR5e in uso
+- **Universal_Robot_ROS_Driver** e relativi: contengono tutti i file necessari all'utilizzo del robot nell'ambiente reale
+- **gazebo_ros_link_attacher**: necessario nell'ambiente simulato poiché permette di unire due oggetti in Gazebo tramite link a runtime
+
+I pacchetti presenti nella repository sono:
+
 - **soft_robotics_description**: contiene i file di descrizione del gripper
 - **soft_robotics_gazebo**: contiene i file per unire il gripper al robot senza usare il file `urdf`
 - **integration_package**: contiene tutti i file di definizione dell'UR5e + il gripper
 - **integration_package_moveit**: contiene i file di configurazione per MoveIt dell'UR5e + gripper
 - **robot_commands**: contiene i programmi per il movimento del robot
 
-### Log, obiettivi futuri e checklist
-
-La repository non sarà mantenuta in maniera costante, fare riferimento alla sezione progetti di GitHub per gli ultimi aggiornamenti e dettagli sullo sviluppo
-
 ### Utilizzo del progetto
 
-Clonare la repository nella cartella `src` di un ambiente catkin già inizializzato. Per inizializzare i submodules utilizzare il comando:
-
-```
-git submodule update --remote --recursive --init
-```
-
-Controllare che le dipendenze del progetto siano soddisfatte utilizzando `rosdep`
+Clonare la repository nella cartella `src` di un ambiente catkin già inizializzato. Controllare che le dipendenze del progetto siano soddisfatte utilizzando `rosdep`
 
 # Comandi
 
