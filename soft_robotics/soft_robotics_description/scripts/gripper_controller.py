@@ -3,6 +3,7 @@
 
 import socket
 import sys
+import os
 import rospy
 from std_msgs.msg import String
 
@@ -11,7 +12,8 @@ PORT = 30002  # UR secondary client
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 s.connect((HOST, PORT))
 
-path = '/home/davide/catkin_ws/src/soft_robotics/soft_robotics_description/scripts/'
+path = os.path.expanduser(
+    '~') + '/catkin_ws/src/soft_robotics/soft_robotics_description/scripts/'
 
 
 def callback(data):
@@ -36,6 +38,7 @@ def listener():
 
     rospy.Subscriber("gripper_controller_cmd", String, callback, queue_size=10)
     rospy.spin()
+
 
     # spin() simply keeps python from exiting until this node is stopped
 if __name__ == '__main__':

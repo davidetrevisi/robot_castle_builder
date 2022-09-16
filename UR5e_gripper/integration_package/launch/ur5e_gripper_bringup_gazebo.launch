@@ -31,7 +31,7 @@
   -->
   
   <!--Robot description and related parameter files -->
-  <arg name="robot_description_file" default="$(dirname)/load_ur5e_gripper.launch.xml" doc="Launch file which populates the 'robot_description' parameter."/>
+  <arg name="robot_description_file" default="$(dirname)/load_ur5e_gripper_gazebo.launch.xml" doc="Launch file which populates the 'robot_description' parameter."/>
   <arg name="joint_limit_params" default="$(find ur_description)/config/ur5e/joint_limits.yaml"/>
   <arg name="kinematics_params" default="$(find ur_description)/config/ur5e/default_kinematics.yaml"/>
   <arg name="physical_params" default="$(find ur_description)/config/ur5e/physical_parameters.yaml"/>
@@ -65,7 +65,7 @@
   </node>
 
   <!-- Start the 'driver' (ie: Gazebo in this case) -->
-  <include file="$(dirname)/ur5e_gripper_control.launch.xml">
+  <include file="$(dirname)/ur5e_gripper_control_gazebo.launch.xml">
     <arg name="controller_config_file" value="$(arg controller_config_file)"/>
     <arg name="controllers" value="$(arg controllers)"/>
     <arg name="gui" value="$(arg gui)"/>

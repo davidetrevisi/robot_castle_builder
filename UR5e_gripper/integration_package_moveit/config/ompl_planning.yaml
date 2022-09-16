@@ -131,7 +131,7 @@ planner_configs:
     load_planner_data: true
     planner_data_path: /roadmap.graph
 manipulator:
-  longest_valid_segment_fraction: 0.005
+  longest_valid_segment_fraction: 0.01
   projection_evaluator: joints(shoulder_pan_joint, shoulder_lift_joint)
   default_planner_config: RRTConnect
   planner_configs:
