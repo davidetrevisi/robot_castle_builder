@@ -4,7 +4,7 @@ moveit_setup_assistant_config:
     relative_path: urdf/ur5e_gripper.xacro
     xacro_args:
       "joint_limit_params:=/home/davide/catkin_ws/src/Universal_Robot/ur_description/config/ur5e/joint_limits.yaml
-      kinematics_params:=/home/davide/catkin_ws/src/Universal_Robot/ur_description/config/ur5e/default_kinematics.yaml
+      kinematics_params:=/home/davide/catkin_ws/src/integration_package_moveit/calibration_files/.yaml
       physical_params:=/home/davide/catkin_ws/src/Universal_Robot/ur_description/config/ur5e/physical_parameters.yaml
       visual_params:=/home/davide/catkin_ws/src/Universal_Robot/ur_description/config/ur5e/visual_parameters.yaml
       transmission_hw_interface:=hardware_interface/PositionJointInterface

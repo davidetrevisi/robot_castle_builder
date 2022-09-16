@@ -13,7 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   moveit_ros_planning_interface 
   moveit_ros_move_group
   gazebo_ros_link_attacher
-  castle_builder
+  pcl_action
 )
 
 ## System dependencies are found with CMake's conventions
@@ -104,10 +104,10 @@ find_package(catkin REQUIRED COMPONENTS
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-   LIBRARIES robot_commands
-#  CATKIN_DEPENDS integration_package
-#  DEPENDS system_lib
+  # INCLUDE_DIRS include
+  LIBRARIES robot_commands
+  # CATKIN_DEPENDS planning_functions
+  # DEPENDS system_lib
 )
 
 ###########
@@ -117,7 +117,6 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-  include
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -136,7 +135,8 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(add_collisions src/add_collisions.cpp)
 add_executable(demo src/demo.cpp)
-add_executable(robot_control_node src/robot_control.cpp)
+add_executable(motion_planner_node src/motion_planner_node.cpp)
+add_executable(ik_testing src/ik_testing.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -154,11 +154,15 @@ target_link_libraries(add_collisions
 )
 
 target_link_libraries(demo
- ${catkin_LIBRARIES}
+  ${catkin_LIBRARIES}
 )
 
-target_link_libraries(robot_control_node
- ${catkin_LIBRARIES}
+target_link_libraries(ik_testing
+  ${catkin_LIBRARIES}
+)
+
+target_link_libraries(motion_planner_node
+  ${catkin_LIBRARIES}
 )
 
 #############

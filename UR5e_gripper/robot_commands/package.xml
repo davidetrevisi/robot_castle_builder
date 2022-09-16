@@ -49,7 +49,7 @@
   <!-- Use doc_depend for packages you need only for building documentation: -->
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
-  <buildtool_depend>castle_builder</buildtool_depend>
+  <build_depend>pcl_action</build_depend>
   <build_depend>integration_package</build_depend>
   <build_export_depend>integration_package</build_export_depend>
   <exec_depend>integration_package</exec_depend>

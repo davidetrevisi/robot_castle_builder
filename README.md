@@ -35,7 +35,7 @@ Clonare la repository nella cartella `src` di un ambiente catkin già inizializz
 Lancio **Gazebo** con l'ambiente di simulazione necessario, in pausa per evitare problemi ai joint del robot
 
 ```
-roslaunch integration_package ur5e_gripper_bringup.launch paused:=true
+roslaunch integration_package ur5e_gripper_bringup_gazebo.launch paused:=true
 ```
 
 Lancio il pacchetto di integrazione con **MoveIt** per il robot, con le necessarie configurazioni e plugin, in ambiente simulato

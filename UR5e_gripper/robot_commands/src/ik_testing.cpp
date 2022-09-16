@@ -1,9 +1,9 @@
 /**
- * @file demo.cpp
+ * @file ik_testing.cpp
  * @author Davide Trevisi
- * @brief ROS Node che esegue un movimento del braccio da posizioni predefinite, compreso gripping con collision
- * @version 0.3
- * @date 2022-07-15
+ * @brief ROS Node che esegue il movimento del braccio da posizioni inserite da terminale
+ * @version 0.2
+ * @date 2022-07-21
  *
  * @copyright Copyright (c) 2022
  *
@@ -11,30 +11,19 @@
 
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
-#include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/LinearMath/Quaternion.h>
 
 #include <moveit_msgs/OrientationConstraint.h>
 #include <moveit_msgs/JointConstraint.h>
-#include <moveit_msgs/AttachedCollisionObject.h>
-
-#include <gazebo_ros_link_attacher/Attach.h>
-#include <gazebo_ros_link_attacher/AttachRequest.h>
-#include <gazebo_ros_link_attacher/AttachResponse.h>
 
 #include <moveit/trajectory_processing/time_optimal_trajectory_generation.h>
 #include <moveit/robot_trajectory/robot_trajectory.h>
 
-#include <std_msgs/String.h>
-#include <std_srvs/Trigger.h>
-
 #include <ros/ros.h>
 
 // Definisco le costanti necessarie (utile averle anche se non usate)
-
-#define SIMULATION true
 
 #define MAX_VELOCITY_SCALING_FACTOR 0.05
 #define MAX_ACCELLERATION_SCALING_FACTOR 0.05
@@ -44,26 +33,14 @@
 #define Z_MIN 1.02
 #define Z_INCREMENT 0.05
 
-#define CUBE_MEASURE 0.025
-#define PARALLELEPIPED_MEASURE 0.05
-
 static const std::string PLANNING_GROUP_ARM = "manipulator";
-static const std::string PLANNING_GROUP_GRIPPER = "endeffector";
 
 // Definisco le variabili necessarie
 
 moveit::planning_interface::MoveGroupInterface *arm_group;
 moveit::planning_interface::MoveGroupInterface::Plan *arm_motion_plan;
-moveit::planning_interface::MoveGroupInterface *gripper_group;
-moveit::planning_interface::MoveGroupInterface::Plan *gripper_motion_plan;
 
 moveit_msgs::Constraints lab_gripper;
-
-moveit::planning_interface::PlanningSceneInterface *planning_scene_interface;
-
-shape_msgs::SolidPrimitive cube_primitive, parallelepiped_primitive;
-moveit_msgs::AttachedCollisionObject block_collision, detach_object;
-moveit_msgs::CollisionObject remove_object;
 
 moveit::core::RobotStatePtr current_state;
 std::vector<double> joint_group_positions;
@@ -72,15 +49,8 @@ const moveit::core::JointModelGroup *joint_model_group;
 trajectory_processing::TimeOptimalTrajectoryGeneration *totg;
 robot_trajectory::RobotTrajectory *robot_traj;
 
-int cube_index = 0;
-int parallelepiped_index = 0;
-
-// [TEST] Simulo i messaggi ricevuti
-geometry_msgs::Pose start, target;
-bool cube = true;
-
 /**
- * @brief Funzone che inizializza le variabili globali e i puntatori
+ * @brief Funzione che inizializza le variabili globali e i puntatori
  *
  */
 
@@ -95,43 +65,6 @@ void setup()
 
     totg = new trajectory_processing::TimeOptimalTrajectoryGeneration();
     robot_traj = new robot_trajectory::RobotTrajectory(arm_group->getRobotModel());
-
-    // Inzializzo le variabili del gripper solo se siamo in ambiente simulato
-
-    if (SIMULATION)
-    {
-        gripper_group = new moveit::planning_interface::MoveGroupInterface(PLANNING_GROUP_GRIPPER);
-        gripper_group->setPlanningTime(5.0);
-        gripper_group->setMaxVelocityScalingFactor(0.1);
-        gripper_group->setMaxAccelerationScalingFactor(0.1);
-
-        gripper_motion_plan = new moveit::planning_interface::MoveGroupInterface::Plan();
-    }
-
-    planning_scene_interface = new moveit::planning_interface::PlanningSceneInterface();
-
-    // Definisco la collisione del cubo
-    cube_primitive.type = cube_primitive.BOX;
-    cube_primitive.dimensions.resize(3);
-    cube_primitive.dimensions[0] = CUBE_MEASURE;
-    cube_primitive.dimensions[1] = CUBE_MEASURE;
-    cube_primitive.dimensions[2] = CUBE_MEASURE;
-
-    // Definisco la collisione del parallelepipedo
-    parallelepiped_primitive.type = parallelepiped_primitive.BOX;
-    parallelepiped_primitive.dimensions.resize(3);
-    parallelepiped_primitive.dimensions[0] = CUBE_MEASURE;
-    parallelepiped_primitive.dimensions[1] = PARALLELEPIPED_MEASURE;
-    parallelepiped_primitive.dimensions[2] = CUBE_MEASURE;
-
-    // Definisco l'oggetto di collisione
-    block_collision.link_name = "soft_robotics_gripper_base_link";
-    block_collision.object.header.frame_id = "base_link";
-    block_collision.touch_links = std::vector<std::string>{"soft_robotics_gripper_base_link",
-                                                           "soft_robotics_right_finger_link1",
-                                                           "soft_robotics_left_finger_link1",
-                                                           "soft_robotics_right_finger_link2",
-                                                           "soft_robotics_left_finger_link2"};
 }
 
 /**
@@ -203,156 +136,6 @@ void robot_constraints()
 
     arm_group->clearPathConstraints();
     arm_group->setPathConstraints(lab_gripper);
-}
-
-/**
- * @brief Funzione che aggiunge l'oggetto di collisione 'cube_collision_ \e index ' alla scena MoveIt!
- *
- * @param pose posa (X, Y, Z, x, y, z, w) dell'oggetto da aggiungere alle collisioni
- * @param index indice dell'oggetto da aggiungere alle collisioni
- */
-
-void add_cube_collision(geometry_msgs::Pose pose, int index)
-{
-    block_collision.object.id = "cube_collision_" + std::to_string(index);
-    block_collision.object.primitives.push_back(cube_primitive);
-    block_collision.object.primitive_poses.push_back(pose);
-    block_collision.object.operation = block_collision.object.ADD;
-
-    planning_scene_interface->applyCollisionObject(block_collision.object);
-}
-
-/**
- * @brief Funzione che aggiunge l'oggetto di collisione 'parallelepiped_collision_ \e index ' alla scena MoveIt!
- *
- * @param pose posa (X, Y, Z, x, y, z, w) dell'oggetto da aggiungere alle collisioni
- * @param index indice dell'oggetto da aggiungere alle collisioni
- */
-
-void add_parallelepiped_collision(geometry_msgs::Pose pose, int index)
-{
-    block_collision.object.id = "parallelepiped_collision_" + std::to_string(index);
-    block_collision.object.primitives.push_back(parallelepiped_primitive);
-    block_collision.object.primitive_poses.push_back(pose);
-    block_collision.object.operation = block_collision.object.ADD;
-
-    planning_scene_interface->applyCollisionObject(block_collision.object);
-}
-
-/**
- * @brief Funzione che esegue l'apertura del gripper in ambiente reale e simulato
- *
- * @param pub publisher ROS utlilzzato per l'invio di messaggi nel topic 'gripper_controller_cmd'. Usato solo in ambiente reale
- * @param client client ROS utilizzato per riconnettere il robot dopo l'invio del messaggio al gripper (ambiente reale)
- *               oppure client ROS per l'apertura del gripper (ambiente simulato)
- * @param model nome del modello di Gazebo da rilasciare dopo l'apertura ( \e cube-parallelepiped , usato soltanto in Gazebo)
- */
-
-void open_gripper(ros::Publisher pub, ros::ServiceClient client, std::string model)
-{
-    if (SIMULATION)
-    {
-        // Ambiente simulato
-        gripper_group->setJointValueTarget(gripper_group->getNamedTargetValues("open"));
-
-        // Pianifico ed eseguo l'apertura del gripper
-        bool success = (gripper_group->plan(*gripper_motion_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
-
-        if (success)
-        {
-            std::cout << "Apertura gripper in corso..." << std::endl
-                      << std::endl;
-            gripper_group->move();
-        }
-        else
-        {
-            std::cout << "ERRORE: Planning fallito!" << std::endl
-                      << std::endl;
-            exit(1);
-        }
-
-        // Stacco il blocco
-        gazebo_ros_link_attacher::Attach detach;
-
-        detach.request.link_name_1 = "link";
-        detach.request.model_name_1 = model;
-        detach.request.link_name_2 = "wrist_3_link";
-        detach.request.model_name_2 = "robot";
-
-        client.call(detach);
-    }
-    else
-    {
-        // Ambiente reale, invio il messaggio di apertura al controller
-        std_msgs::String msg;
-        std::stringstream ss;
-
-        ss << "open";
-        msg.data = ss.str();
-        std::cout << "Invio del messaggio al nodo di comando del gripper: " << msg.data.c_str() << std::endl;
-        pub.publish(msg);
-        ros::Duration(1.3).sleep();
-        std_srvs::Trigger srv;
-        client.call(srv);
-    }
-}
-
-/**
- * @brief Funzione che esegue la chiusura del gripper in ambiente reale e simulato
- *
- * @param pub publisher ROS utlilzzato per l'invio di messaggi nel topic 'gripper_controller_cmd'. Usato solo in ambiente reale
- * @param client client ROS utilizzato per riconnettere il robot dopo l'invio del messaggio al gripper (ambiente reale)
- *               oppure client ROS per l'apertura del gripper (ambiente simulato)
- * @param model nome del modello di Gazebo da prendere dopo l'apertura ( \e cube-parallelepiped , usato soltanto in Gazebo)
- */
-
-void close_gripper(ros::Publisher pub, ros::ServiceClient client, std::string model)
-{
-    if (SIMULATION)
-    {
-        // Ambiente simulato
-        gripper_group->setJointValueTarget(gripper_group->getNamedTargetValues("close"));
-
-        // Pianifico ed eseguo la chiusura del gripper
-        bool success = (gripper_group->plan(*gripper_motion_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
-
-        if (success)
-        {
-            std::cout << "Chiusura gripper in corso..." << std::endl
-                      << std::endl;
-            gripper_group->move();
-        }
-        else
-        {
-            std::cout << "ERRORE: Planning fallito!" << std::endl
-                      << std::endl;
-            exit(1);
-        }
-
-        // Attacco il blocco
-        gazebo_ros_link_attacher::Attach attach;
-
-        attach.request.link_name_1 = "link";
-        attach.request.model_name_1 = model;
-        attach.request.link_name_2 = "wrist_3_link";
-        attach.request.model_name_2 = "robot";
-
-        client.call(attach);
-    }
-    else
-    {
-        // Ambiente reale, invio il messaggio di chiusura al controller
-        std_msgs::String msg;
-        std::stringstream ss;
-
-        ss << "close";
-        msg.data = ss.str();
-        std::cout << "Invio del messaggio al nodo di comando del gripper: " << msg.data.c_str() << std::endl;
-        pub.publish(msg);
-        ros::Duration(1.3).sleep();
-        std_srvs::Trigger srv;
-        client.call(srv);
-    }
 }
 
 /**
@@ -622,21 +405,15 @@ void rotate_end_effector(int joint_number, double amount)
 
 /**
  * @brief Funzione che esegue il movimento in sequenza del braccio, chiamando le apposite funzioni, per il pick-place
- *        dei blocchi (con collisioni)
+ *        dei blocchi (senza collisioni)
  *
- * @param client Ros client that call gripper_controller_node for sending cmd to gripper
- * @param gripper_pub
+ * @param start posa (X, Y, Z, x, y, z, w) del blocco da prendere (solo x,y e rotazione usati)
+ * @param target posa (X, Y, Z, x, y, z, w) in cui rilasciare il blocco (solo x,y e rotazione usati)
  */
 
-void pick_place(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_client_detach, ros::Publisher gripper_pub)
+void pick_place_simple(geometry_msgs::Pose start, geometry_msgs::Pose target)
 {
     // Inizializzo le variabili necessarie
-    robot_model_loader::RobotModelLoaderPtr robot_model_loader(new robot_model_loader::RobotModelLoader("robot_description"));
-    planning_scene_monitor::PlanningSceneMonitorPtr planning_scene_monitor(new planning_scene_monitor::PlanningSceneMonitor(robot_model_loader));
-    planning_scene_monitor::LockedPlanningSceneRW ls(planning_scene_monitor);
-    collision_detection::AllowedCollisionMatrix &acm = ls->getAllowedCollisionMatrixNonConst();
-    moveit_msgs::PlanningScene diff_scene;
-
     geometry_msgs::Pose point;
     tf2::Quaternion target_q;
 
@@ -647,7 +424,7 @@ void pick_place(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_c
     target_q.setW(0);
     target_q.normalize();
 
-    // Stampa di cortesia delle posizioni
+    // Stampa di cortesia delle posizioni in input
     std::cout << "Destinazione iniziale:\n"
               << std::endl;
     std::cout << "x: " << start.position.x << std::endl;
@@ -670,22 +447,8 @@ void pick_place(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_c
     std::cout << "rot w: " << target.orientation.w << std::endl
               << std::endl;
 
-    // Inizializzo la posa del blocco da prendere
-    point = start;
-    point.position.x = -start.position.x;
-    point.position.z = Z_DESK + CUBE_MEASURE / 2.0;
-
-    // Aggiungo l'oggetto di collisione all'ambiente
-    if (cube)
-    {
-        add_cube_collision(point, cube_index);
-    }
-    else
-    {
-        add_parallelepiped_collision(point, parallelepiped_index);
-    }
-
-    // Sistemo la posa per il robot
+    // Eseguo il planning verso la posa iniziale
+    // con orientazione di default e altezza prefissata
     point.orientation = tf2::toMsg(target_q);
     point.position = start.position;
     point.position.z = start.position.z + Z_INCREMENT;
@@ -739,45 +502,8 @@ void pick_place(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_c
     execute_Cartesian_Path(point);
     ros::Duration(0.5).sleep();
 
-    // Aggiorno la matrice delle collisioni per rimuovere le collisioni del blocco con il gripper
-
-    if (cube)
-    {
-        acm.setEntry("cube_collision_" + std::to_string(cube_index), "soft_robotics_right_finger_link1", true);
-        acm.setEntry("cube_collision_" + std::to_string(cube_index), "soft_robotics_left_finger_link1", true);
-        acm.setEntry("cube_collision_" + std::to_string(cube_index), "soft_robotics_right_finger_link2", true);
-        acm.setEntry("cube_collision_" + std::to_string(cube_index), "soft_robotics_left_finger_link2", true);
-    }
-    else
-    {
-        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_index), "soft_robotics_right_finger_link1", true);
-        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_index), "soft_robotics_left_finger_link1", true);
-        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_index), "soft_robotics_right_finger_link2", true);
-        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_index), "soft_robotics_left_finger_link2", true);
-    }
-
-    ls->getPlanningSceneDiffMsg(diff_scene);
-
-    // Aggiorno la scena in MoveIt!
-    planning_scene_interface->applyPlanningScene(diff_scene);
-
-    // Chiudo il gripper e aggancio l'oggetto
-    if (cube)
-    {
-        close_gripper(gripper_pub, demo_client_attach, "cubo_" + std::to_string(cube_index));
-    }
-    else
-    {
-        close_gripper(gripper_pub, demo_client_attach, "parallelepipedo_" + std::to_string(parallelepiped_index));
-    }
-    ros::Duration(0.5).sleep();
-
-    // Modifico le collisioni del blocco, rimuovendolo dall'ambiente e attaccandolo al gripper
-    block_collision.object.operation = block_collision.object.REMOVE;
-    planning_scene_interface->applyCollisionObject(block_collision.object);
-
-    block_collision.object.operation = block_collision.object.ADD;
-    planning_scene_interface->applyAttachedCollisionObject(block_collision);
+    // Aspetto per simulare il gripper
+    ros::Duration(3).sleep();
 
     // Eseguo il planning cartesiano verso la posizione precedente
     point.position.z = start.position.z + Z_INCREMENT;
@@ -849,48 +575,8 @@ void pick_place(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_c
     execute_Cartesian_Path(point);
     ros::Duration(0.5).sleep();
 
-    // Apro il gripper e sgancio l'oggetto
-    if (cube)
-    {
-        open_gripper(gripper_pub, demo_client_attach, "cubo_" + std::to_string(cube_index));
-    }
-    else
-    {
-        open_gripper(gripper_pub, demo_client_attach, "parallelepipedo_" + std::to_string(parallelepiped_index));
-    }
-    ros::Duration(0.5).sleep();
-
-    // Modifico le collisioni del blocco, aggiungendolo all'ambiente e rimuovendolo dal gripper
-    block_collision.object.operation = block_collision.object.REMOVE;
-    planning_scene_interface->applyAttachedCollisionObject(block_collision);
-
-    block_collision.object.pose = target;
-    block_collision.object.pose.position.x = -target.position.x;
-    block_collision.object.pose.position.z = Z_DESK + CUBE_MEASURE / 2.0;
-    block_collision.object.operation = block_collision.object.ADD;
-    planning_scene_interface->applyCollisionObject(block_collision.object);
-
-    // Aggiorno la matrice delle collisioni per aggiungere le collisioni del blocco con il gripper
-
-    if (cube)
-    {
-        acm.setEntry("cube_collision_" + std::to_string(cube_index), "soft_robotics_right_finger_link1", false);
-        acm.setEntry("cube_collision_" + std::to_string(cube_index), "soft_robotics_left_finger_link1", false);
-        acm.setEntry("cube_collision_" + std::to_string(cube_index), "soft_robotics_right_finger_link2", false);
-        acm.setEntry("cube_collision_" + std::to_string(cube_index), "soft_robotics_left_finger_link2", false);
-    }
-    else
-    {
-        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_index), "soft_robotics_right_finger_link1", false);
-        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_index), "soft_robotics_left_finger_link1", false);
-        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_index), "soft_robotics_right_finger_link2", false);
-        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_index), "soft_robotics_left_finger_link2", false);
-    }
-
-    ls->getPlanningSceneDiffMsg(diff_scene);
-
-    // Aggiorno la scena in MoveIt!
-    planning_scene_interface->applyPlanningScene(diff_scene);
+    // Aspetto per simulare il gripper
+    ros::Duration(3).sleep();
 
     // Eseguo il planning cartesiano verso la posizione precedente
     point.position.z = target.position.z + Z_INCREMENT;
@@ -933,38 +619,23 @@ void pick_place(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_c
 int main(int argc, char **args)
 {
     // Inizializzo il nodo
-    ros::init(argc, args, "demo");
+    ros::init(argc, args, "ik_testing");
     ros::NodeHandle n;
     ros::AsyncSpinner spinner(1);
-
-    // Inizializzo il publisher di ROS per i messaggi al controller del gripper
-    ros::Publisher gripper_pub = n.advertise<std_msgs::String>("gripper_controller_cmd", 10);
-
     spinner.start();
     setup();
 
-    ros::ServiceClient attach_srv, detach_srv, client;
-
-    if (SIMULATION)
-    {
-        attach_srv = n.serviceClient<gazebo_ros_link_attacher::Attach>("/link_attacher_node/attach");
-        detach_srv = n.serviceClient<gazebo_ros_link_attacher::Attach>("/link_attacher_node/detach");
-
-        // Eseguo il planning alla posizione iniziale del braccio (usato solo per Gazebo)
-        arm_group->setJointValueTarget(arm_group->getNamedTargetValues("home"));
-        arm_group->move();
-    }
-    else
-    {
-        client = n.serviceClient<std_srvs::Trigger>("/ur_hardware_interface/resend_robot_program");
-    }
+    // Eseguo il planning alla posizione iniziale del braccio (usato solo per Gazebo)
+    arm_group->setJointValueTarget(arm_group->getNamedTargetValues("home"));
+    arm_group->move();
 
     // Aggiungo le costrizioni al robot
     robot_constraints();
 
-    std::cout << "Robot pronto a ricevere comandi" << std::endl
+    std::cout << "Robot pronto a ricevere posizioni" << std::endl
               << std::endl;
 
+    geometry_msgs::Pose start, target;
     tf2::Quaternion q_orientation;
 
     start.position.x = -0.4476;
@@ -991,5 +662,5 @@ int main(int argc, char **args)
 
     target.orientation = tf2::toMsg(q_orientation);
 
-    pick_place(attach_srv, detach_srv, gripper_pub);
+    pick_place_simple(start, target);
 }
