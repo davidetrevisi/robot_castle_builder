@@ -197,7 +197,7 @@ void addCollisions()
 /**
  * @brief Funzione che rimuove le collisioni dalla scena MoveIt!
  *
- * @param sig Numero del segnale
+ * @param sig numero del segnale
  */
 
 void removeCollision(int sig)

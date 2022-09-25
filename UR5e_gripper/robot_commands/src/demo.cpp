@@ -32,6 +32,8 @@
 
 #include <ros/ros.h>
 
+#include <signal.h>
+
 // Definisco le costanti necessarie (utile averle anche se non usate)
 
 #define SIMULATION true
@@ -44,9 +46,19 @@
 #define Z_MIN 1.02
 #define Z_INCREMENT 0.05
 
+#define BUFFER_CUBE_ROWS 2
+#define BUFFER_PARA_ROWS 1
+#define BUFFER_CUBE_PER_ROW 10
+#define BUFFER_PARA_PER_ROW 7
+#define BUFFER_CUBE_SPACE 0.045
+#define BUFFER_PARA_SPACE 0.07
+#define BUFFER_ROW_SPACE 0.08
+
 #define CUBE_MEASURE 0.025
 #define PARALLELEPIPED_MEASURE 0.05
 
+static geometry_msgs::Pose cube_buffer_pose, parallelepiped_buffer_pose;
+static const std::string delim = "_";
 static const std::string PLANNING_GROUP_ARM = "manipulator";
 static const std::string PLANNING_GROUP_GRIPPER = "endeffector";
 
@@ -74,6 +86,10 @@ robot_trajectory::RobotTrajectory *robot_traj;
 
 int cube_index = 0;
 int parallelepiped_index = 0;
+int buffer_counter = 0;
+
+bool TARGET_BUFFER_FLAG = false;
+bool TARGET_CASTLE_FLAG = false;
 
 // [TEST] Simulo i messaggi ricevuti
 geometry_msgs::Pose start, target;
@@ -132,6 +148,26 @@ void setup()
                                                            "soft_robotics_left_finger_link1",
                                                            "soft_robotics_right_finger_link2",
                                                            "soft_robotics_left_finger_link2"};
+
+    // Definisco la posizione del primo cubo nel buffer (in basso a sinistra, vedi figura)
+    tf2::Quaternion cube_orientation(-1.0, 0.0, 0.0, 0.0);
+    cube_orientation.normalize();
+
+    cube_buffer_pose.position.x = 0.45;
+    cube_buffer_pose.position.y = 0.4;
+    cube_buffer_pose.position.z = Z_MIN;
+
+    cube_buffer_pose.orientation = tf2::toMsg(cube_orientation);
+
+    // Definisco la posizione del primo parallelepipedo nel buffer (in basso a sinistra, vedi figura)
+    tf2::Quaternion parallelepiped_orientation(-0.7, 0.7, 0.0, 0.0);
+    parallelepiped_orientation.normalize();
+
+    parallelepiped_buffer_pose.position.x = 0.29;
+    parallelepiped_buffer_pose.position.y = 0.395;
+    parallelepiped_buffer_pose.position.z = Z_MIN;
+
+    parallelepiped_buffer_pose.orientation = tf2::toMsg(parallelepiped_orientation);
 }
 
 /**
@@ -214,6 +250,9 @@ void robot_constraints()
 
 void add_cube_collision(geometry_msgs::Pose pose, int index)
 {
+    pose.position.x = -pose.position.x;
+    pose.position.z = Z_DESK + CUBE_MEASURE / 2.0;
+
     block_collision.object.id = "cube_collision_" + std::to_string(index);
     block_collision.object.primitives.push_back(cube_primitive);
     block_collision.object.primitive_poses.push_back(pose);
@@ -231,12 +270,171 @@ void add_cube_collision(geometry_msgs::Pose pose, int index)
 
 void add_parallelepiped_collision(geometry_msgs::Pose pose, int index)
 {
+    pose.position.x = -pose.position.x;
+    pose.position.z = Z_DESK + CUBE_MEASURE / 2.0;
+
     block_collision.object.id = "parallelepiped_collision_" + std::to_string(index);
     block_collision.object.primitives.push_back(parallelepiped_primitive);
     block_collision.object.primitive_poses.push_back(pose);
     block_collision.object.operation = block_collision.object.ADD;
 
     planning_scene_interface->applyCollisionObject(block_collision.object);
+}
+
+/**
+ * @brief Funzione che rimuove le collisioni dalla scena MoveIt!
+ *
+ * @param sig numero del segnale
+ */
+
+void removeCollision(int sig)
+{
+    std::vector<std::string> object_ids;
+
+    std::cout << std::endl
+              << "Rimuovo le collisioni"
+              << std::endl;
+
+    // Rimuovo le collisioni e termino il programma
+
+    for (int i = 1; i < cube_index; i++)
+    {
+        object_ids.push_back("cube_collision_" + std::to_string(i));
+    }
+
+    for (int i = 1; i < parallelepiped_index; i++)
+    {
+        object_ids.push_back("parallelepiped_collision_" + std::to_string(i));
+    }
+
+    planning_scene_interface->removeCollisionObjects(object_ids);
+    ros::shutdown();
+}
+
+/**
+ * @brief Funzione che calcola la posa dell'end-effector per posizionare il blocco
+ *        nel buffer tramite l'indice 'counter'. La funzione calcola la posa
+ *        in base alle costanti presenti e alle pose di default
+ *
+ * @param counter variabile che tiene conto del numero dei blocchi inseriti (0, n-1)
+ *
+ * @return posa target dell'end-effector per il posizionamento del blocco nel buffer,
+ *         vuota in caso di buffer pieno
+ */
+
+geometry_msgs::Pose get_buffer_target(int counter)
+{
+    geometry_msgs::Pose return_pose;
+
+    // Controllo se buffer pieno
+    if (counter > (BUFFER_CUBE_ROWS * BUFFER_CUBE_PER_ROW + BUFFER_PARA_ROWS * BUFFER_PARA_PER_ROW))
+    {
+        std::cout << "ERRORE: Buffer pieno!" << std::endl
+                  << std::endl;
+        return_pose.position.x = return_pose.position.y = return_pose.position.z = 0;
+        return_pose.orientation.x = return_pose.orientation.y = return_pose.orientation.z = return_pose.orientation.w = 0;
+        return return_pose;
+    }
+
+    // Riga dei parallelepipedi: primo parallelepipedo della riga del cambio di oggetti
+    if (counter = ((BUFFER_CUBE_ROWS * BUFFER_CUBE_PER_ROW) - 1))
+    {
+        return_pose = parallelepiped_buffer_pose;
+        return return_pose;
+    }
+
+    // Riga dei parallelepipedi: considero la variabile 'counter' minore del massimo dei blocchi,
+    // perché la funzione sarebbe uscita sopra in caso contrario. I cubi vengono prima dei
+    // parallelepipedi.
+    if (counter > ((BUFFER_CUBE_ROWS * BUFFER_CUBE_PER_ROW) - 1))
+    {
+        // Controllo se ho finito i blocchi nella riga in cui mi trovo
+        if (counter % BUFFER_PARA_PER_ROW == (BUFFER_PARA_PER_ROW - 1))
+        {
+            // Passo alla riga successiva
+            return_pose = parallelepiped_buffer_pose;
+
+            return_pose.position.x = return_pose.position.x - BUFFER_ROW_SPACE;
+            return return_pose;
+        }
+        else
+        {
+            // Passo al blocco successivo nella riga
+            return_pose = parallelepiped_buffer_pose;
+
+            return_pose.position.y = return_pose.position.y - (BUFFER_PARA_SPACE * (counter % BUFFER_PARA_PER_ROW));
+            return return_pose;
+        }
+    }
+
+    // Righe dei cubi: controllo se ho finito i blocchi nella riga in cui mi trovo
+    if (counter % BUFFER_CUBE_PER_ROW == (BUFFER_CUBE_PER_ROW - 1))
+    {
+        // Passo alla riga successiva
+        return_pose = cube_buffer_pose;
+
+        return_pose.position.x = return_pose.position.x - BUFFER_ROW_SPACE;
+        return return_pose;
+    }
+    else
+    {
+        // Passo al blocco successivo nella riga
+        return_pose = cube_buffer_pose;
+
+        return_pose.position.y = return_pose.position.y - (BUFFER_CUBE_SPACE * (counter % BUFFER_CUBE_PER_ROW));
+        return return_pose;
+    }
+}
+
+/**
+ * @brief Funzione che trova l'indice tra le collisioni del blocco con la posa specificata e lo ritorna
+ *
+ * @param target posa (X, Y, Z, x, y, z, w) dell'oggetto da trovare nelle collisioni
+ *
+ * @return int contenente l'indice della collision, 0 in caso di errore
+ */
+
+int get_index_from_buffer_pose(geometry_msgs::Pose target)
+{
+    // Inizializzo le variabili necessarie (mappa e iteratore, legati alla funzione di MoveIt!)
+    std::map<std::string, geometry_msgs::Pose> object_poses;
+    std::map<std::string, geometry_msgs::Pose>::iterator i;
+
+    // Salvo la lista con le pose degli oggetti di collisione nella scena MoveIt!
+    object_poses = planning_scene_interface->getObjectPoses(planning_scene_interface->getKnownObjectNames());
+
+    // Ciclo nella mappa cercando un oggetto con la posa desiderata
+    for (i = object_poses.begin(); i != object_poses.end(); i++)
+    {
+        if (i->second == target)
+        {
+            // Ho trovato l'oggetto, estraggo l'id dal nome
+            std::string s = i->first;
+            unsigned int start = 0U;
+
+            // Divido la stringa fino al primo delimitatore ('_')
+            std::size_t end = s.find(delim);
+            while (end != std::string::npos)
+            {
+                // Converto la parte di stringa divisa in numero
+                char *n;
+                std::strtol(s.substr(start, end - start).c_str(), &n, 10);
+                if (*n)
+                {
+                    // Conversione fallita, non è un numero
+                    start = end + delim.length();
+                    end = s.find(delim, start);
+                }
+                else
+                {
+                    // Conversione riuscita, ritorno il valore
+                    return std::stoi(s.substr(start, end - start));
+                }
+            }
+        }
+    }
+
+    return 0;
 }
 
 /**
@@ -556,6 +754,53 @@ void motion_plan_middle(geometry_msgs::Pose target)
 }
 
 /**
+ * @brief Funzione che sceglie se far passare il braccio per il punto medio oppure no.
+ *        Il passaggio avviene supponendo di divirere il tavolo di lavoro in due metà
+ *        rispetto all'origine del robot: se origine e destinazione si trovano sulla stessa metà
+ *        allora non serve passare per il waypoint
+ *
+ * @param target posa (X, Y, Z, x, y, z, w) che dovrà avere l'end-effector del braccio al termine del movimento
+ */
+
+void select_arm_motion_plan(geometry_msgs::Pose target)
+{
+    // Breve controllo per vedere se passare o meno per il punto medio:
+    // Se la posa corrente e la posa target sono opposte rispetto alla rotazione del robot
+    // (x positiva o negativa) allora passo per il punto medio, viceversa se hanno lo stesso
+    // segno eseguo il movimento diretto
+    if (signbit(arm_group->getCurrentPose().pose.position.x))
+    {
+        // Posa corrente negativa
+        if (signbit(target.position.x))
+        {
+            // Posa target negativa
+            motion_plan(target);
+        }
+        else
+        {
+            // Posa target positiva
+            motion_plan_middle(target);
+        }
+        ros::Duration(0.5).sleep();
+    }
+    else
+    {
+        // Posa corrente positiva
+        if (signbit(target.position.x))
+        {
+            // Posa target negativa
+            motion_plan_middle(target);
+        }
+        else
+        {
+            // Posa target positiva
+            motion_plan(target);
+        }
+        ros::Duration(0.5).sleep();
+    }
+}
+
+/**
  * @brief Funzione che assegna ad un determinato joint un valore passato come parametro
  *        (consultare il file URDF del robot per maggiori informazioni, numerazione crescente)
  *
@@ -640,12 +885,17 @@ void pick_place(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_c
     geometry_msgs::Pose point;
     tf2::Quaternion target_q;
 
-    // Imposto la rotazione di default (gripper con tubo verso il muro posteriore)
+    // Imposto la rotazione di default (gripper con tubo dell'aria verso il muro posteriore)
     target_q.setX(-1);
     target_q.setY(0);
     target_q.setZ(0);
     target_q.setW(0);
     target_q.normalize();
+
+    if (TARGET_BUFFER_FLAG)
+    {
+        target = get_buffer_target(buffer_counter);
+    }
 
     // Stampa di cortesia delle posizioni
     std::cout << "Destinazione iniziale:\n"
@@ -672,17 +922,43 @@ void pick_place(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_c
 
     // Inizializzo la posa del blocco da prendere
     point = start;
-    point.position.x = -start.position.x;
-    point.position.z = Z_DESK + CUBE_MEASURE / 2.0;
 
-    // Aggiungo l'oggetto di collisione all'ambiente
-    if (cube)
+    // Aggiungo l'oggetto solo se lo metto nel buffer (non è presente nella scena)
+    if (TARGET_BUFFER_FLAG)
     {
-        add_cube_collision(point, cube_index);
+        // Aggiungo l'oggetto di collisione all'ambiente
+        if (cube)
+        {
+            cube_index++;
+            add_cube_collision(point, cube_index);
+        }
+        else
+        {
+            parallelepiped_index++;
+            add_parallelepiped_collision(point, parallelepiped_index);
+        }
     }
-    else
+    else if (TARGET_CASTLE_FLAG)
     {
-        add_parallelepiped_collision(point, parallelepiped_index);
+        // Correggo la posa del gripper con la posa delle collision
+        point.position.x = -point.position.x;
+
+        block_collision.object.primitive_poses.push_back(point);
+        buffer_counter = get_index_from_buffer_pose(point);
+
+        // Riga dei parallelepipedi: considero la variabile 'counter' minore del massimo dei blocchi,
+        // perché la funzione sarebbe uscita sopra in caso contrario. I cubi vengono prima dei
+        // parallelepipedi.
+        if (buffer_counter > ((BUFFER_CUBE_ROWS * BUFFER_CUBE_PER_ROW) - 1))
+        {
+            block_collision.object.id = "parallelepiped_collision_" + std::to_string(buffer_counter);
+            block_collision.object.primitives.push_back(parallelepiped_primitive);
+        }
+        else
+        {
+            block_collision.object.id = "cube_collision_" + std::to_string(buffer_counter);
+            block_collision.object.primitives.push_back(cube_primitive);
+        }
     }
 
     // Sistemo la posa per il robot
@@ -690,40 +966,7 @@ void pick_place(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_c
     point.position = start.position;
     point.position.z = start.position.z + Z_INCREMENT;
 
-    // Breve controllo per vedere se passare o meno per il punto medio:
-    // Se la posa corrente e la posa target sono opposte rispetto alla rotazione del robot
-    // (x positiva o negativa) allora passo per il punto medio, viceversa se hanno lo stesso
-    // segno eseguo il movimento diretto
-    if (signbit(arm_group->getCurrentPose().pose.position.x))
-    {
-        // Posa corrente negativa
-        if (signbit(point.position.x))
-        {
-            // Posa target negativa
-            motion_plan(point);
-        }
-        else
-        {
-            // Posa target positiva
-            motion_plan_middle(point);
-        }
-        ros::Duration(0.5).sleep();
-    }
-    else
-    {
-        // Posa corrente positiva
-        if (signbit(point.position.x))
-        {
-            // Posa target negativa
-            motion_plan_middle(point);
-        }
-        else
-        {
-            // Posa target positiva
-            motion_plan(point);
-        }
-        ros::Duration(0.5).sleep();
-    }
+    select_arm_motion_plan(point);
 
     // Ruoto il gripper se la rotazione dell'end-effector della posizione desiderata è diversa da quella di default
     if (point.orientation != start.orientation)
@@ -798,42 +1041,7 @@ void pick_place(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_c
     point.position = target.position;
     point.position.z = target.position.z + Z_INCREMENT;
 
-    // Breve controllo per vedere se passare o meno per il punto medio:
-    // Se la posa corrente e la posa target sono opposte rispetto alla rotazione del robot
-    // (x positiva o negativa) allora passo per il punto medio, viceversa se hanno lo stesso
-    // segno eseguo il movimento diretto
-    if (signbit(arm_group->getCurrentPose().pose.position.x))
-    {
-        // Posa corrente negativa
-        if (signbit(point.position.x))
-        {
-            // Posa target negativa
-            motion_plan(point);
-            ros::Duration(0.5).sleep();
-        }
-        else
-        {
-            // Posa target positiva
-            motion_plan_middle(point);
-            ros::Duration(0.5).sleep();
-        }
-    }
-    else
-    {
-        // Posa corrente positiva
-        if (signbit(point.position.x))
-        {
-            // Posa target negativa
-            motion_plan_middle(point);
-            ros::Duration(0.5).sleep();
-        }
-        else
-        {
-            // Posa target positiva
-            motion_plan(point);
-            ros::Duration(0.5).sleep();
-        }
-    }
+    select_arm_motion_plan(point);
 
     // Ruoto il gripper se la rotazione dell'end-effector della posizione desiderata è diversa da quella di default
     if (point.orientation != target.orientation)
@@ -926,6 +1134,13 @@ void pick_place(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_c
     arm_group->setJointValueTarget(arm_group->getNamedTargetValues("home"));
     arm_group->move();
     ros::Duration(0.5).sleep();
+
+    // Porto il counter a puntare al blocco successivo
+    buffer_counter++;
+
+    // Resetto le flag per la successiva iterazione
+    TARGET_BUFFER_FLAG = false;
+    TARGET_CASTLE_FLAG = false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -962,9 +1177,13 @@ int main(int argc, char **args)
     // Aggiungo le costrizioni al robot
     robot_constraints();
 
+    // Gestisco la rimozione delle collision all'uscita del programma
+    signal(SIGINT, removeCollision);
+
     std::cout << "Robot pronto a ricevere comandi" << std::endl
               << std::endl;
 
+    // Definisco le posizioni iniziali e finali
     tf2::Quaternion q_orientation;
 
     start.position.x = -0.4476;

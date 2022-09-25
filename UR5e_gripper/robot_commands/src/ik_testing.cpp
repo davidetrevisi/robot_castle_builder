@@ -339,6 +339,53 @@ void motion_plan_middle(geometry_msgs::Pose target)
 }
 
 /**
+ * @brief Funzione che sceglie se far passare il braccio per il punto medio oppure no.
+ *        Il passaggio avviene supponendo di divirere il tavolo di lavoro in due metà
+ *        rispetto all'origine del robot: se origine e destinazione si trovano sulla stessa metà
+ *        allora non serve passare per il waypoint
+ *
+ * @param target posa (X, Y, Z, x, y, z, w) che dovrà avere l'end-effector del braccio al termine del movimento
+ */
+
+void select_arm_motion_plan(geometry_msgs::Pose target)
+{
+    // Breve controllo per vedere se passare o meno per il punto medio:
+    // Se la posa corrente e la posa target sono opposte rispetto alla rotazione del robot
+    // (x positiva o negativa) allora passo per il punto medio, viceversa se hanno lo stesso
+    // segno eseguo il movimento diretto
+    if (signbit(arm_group->getCurrentPose().pose.position.x))
+    {
+        // Posa corrente negativa
+        if (signbit(target.position.x))
+        {
+            // Posa target negativa
+            motion_plan(target);
+        }
+        else
+        {
+            // Posa target positiva
+            motion_plan_middle(target);
+        }
+        ros::Duration(0.5).sleep();
+    }
+    else
+    {
+        // Posa corrente positiva
+        if (signbit(target.position.x))
+        {
+            // Posa target negativa
+            motion_plan_middle(target);
+        }
+        else
+        {
+            // Posa target positiva
+            motion_plan(target);
+        }
+        ros::Duration(0.5).sleep();
+    }
+}
+
+/**
  * @brief Funzione che assegna ad un determinato joint un valore passato come parametro
  *        (consultare il file URDF del robot per maggiori informazioni, numerazione crescente)
  *
@@ -453,40 +500,7 @@ void pick_place_simple(geometry_msgs::Pose start, geometry_msgs::Pose target)
     point.position = start.position;
     point.position.z = start.position.z + Z_INCREMENT;
 
-    // Breve controllo per vedere se passare o meno per il punto medio:
-    // Se la posa corrente e la posa target sono opposte rispetto alla rotazione del robot
-    // (x positiva o negativa) allora passo per il punto medio, viceversa se hanno lo stesso
-    // segno eseguo il movimento diretto
-    if (signbit(arm_group->getCurrentPose().pose.position.x))
-    {
-        // Posa corrente negativa
-        if (signbit(point.position.x))
-        {
-            // Posa target negativa
-            motion_plan(point);
-        }
-        else
-        {
-            // Posa target positiva
-            motion_plan_middle(point);
-        }
-        ros::Duration(0.5).sleep();
-    }
-    else
-    {
-        // Posa corrente positiva
-        if (signbit(point.position.x))
-        {
-            // Posa target negativa
-            motion_plan_middle(point);
-        }
-        else
-        {
-            // Posa target positiva
-            motion_plan(point);
-        }
-        ros::Duration(0.5).sleep();
-    }
+    select_arm_motion_plan(point);
 
     // Ruoto il gripper se la rotazione dell'end-effector della posizione desiderata è diversa da quella di default
     if (point.orientation != start.orientation)
@@ -524,42 +538,7 @@ void pick_place_simple(geometry_msgs::Pose start, geometry_msgs::Pose target)
     point.position = target.position;
     point.position.z = target.position.z + Z_INCREMENT;
 
-    // Breve controllo per vedere se passare o meno per il punto medio:
-    // Se la posa corrente e la posa target sono opposte rispetto alla rotazione del robot
-    // (x positiva o negativa) allora passo per il punto medio, viceversa se hanno lo stesso
-    // segno eseguo il movimento diretto
-    if (signbit(arm_group->getCurrentPose().pose.position.x))
-    {
-        // Posa corrente negativa
-        if (signbit(point.position.x))
-        {
-            // Posa target negativa
-            motion_plan(point);
-            ros::Duration(0.5).sleep();
-        }
-        else
-        {
-            // Posa target positiva
-            motion_plan_middle(point);
-            ros::Duration(0.5).sleep();
-        }
-    }
-    else
-    {
-        // Posa corrente positiva
-        if (signbit(point.position.x))
-        {
-            // Posa target negativa
-            motion_plan_middle(point);
-            ros::Duration(0.5).sleep();
-        }
-        else
-        {
-            // Posa target positiva
-            motion_plan(point);
-            ros::Duration(0.5).sleep();
-        }
-    }
+    select_arm_motion_plan(point);
 
     // Ruoto il gripper se la rotazione dell'end-effector della posizione desiderata è diversa da quella di default
     if (point.orientation != target.orientation)
@@ -638,6 +617,79 @@ int main(int argc, char **args)
     geometry_msgs::Pose start, target;
     tf2::Quaternion q_orientation;
 
+    while (ros::ok())
+    {
+        std::cout << "Inserire la posa di partenza: (decimali delimitati da '.')" << std::endl;
+        std::cout << std::endl
+                  << "x: ";
+        std::cin >> start.position.x;
+        std::cout << std::endl
+                  << "y: ";
+        std::cin >> start.position.y;
+        std::cout << std::endl
+                  << "z: ";
+        std::cin >> start.position.z;
+        std::cout << std::endl
+                  << "rot x: ";
+        std::cin >> start.orientation.x;
+        std::cout << std::endl
+                  << "rot y: ";
+        std::cin >> start.orientation.y;
+        std::cout << std::endl
+                  << "rot z: ";
+        std::cin >> start.orientation.z;
+        std::cout << std::endl
+                  << "rot w: ";
+        std::cin >> start.orientation.w;
+        std::cout << std::endl;
+
+        q_orientation.setX(start.orientation.x);
+        q_orientation.setY(start.orientation.y);
+        q_orientation.setZ(start.orientation.z);
+        q_orientation.setW(start.orientation.w);
+        q_orientation.normalize();
+
+        start.orientation = tf2::toMsg(q_orientation);
+
+        std::cout << "Inserire la posa di arrivo: (decimali delimitati da '.')" << std::endl;
+        std::cout << std::endl
+                  << "x: ";
+        std::cin >> target.position.x;
+        std::cout << std::endl
+                  << "y: ";
+        std::cin >> target.position.y;
+        std::cout << std::endl
+                  << "z: ";
+        std::cin >> target.position.z;
+        std::cout << std::endl
+                  << "rot x: ";
+        std::cin >> target.orientation.x;
+        std::cout << std::endl
+                  << "rot y: ";
+        std::cin >> target.orientation.y;
+        std::cout << std::endl
+                  << "rot z: ";
+        std::cin >> target.orientation.z;
+        std::cout << std::endl
+                  << "rot w: ";
+        std::cin >> target.orientation.w;
+        std::cout << std::endl;
+
+        q_orientation.setX(target.orientation.x);
+        q_orientation.setY(target.orientation.y);
+        q_orientation.setZ(target.orientation.z);
+        q_orientation.setW(target.orientation.w);
+        q_orientation.normalize();
+
+        target.orientation = tf2::toMsg(q_orientation);
+
+        std::cout << "Esecuzione in corso..." << std::endl
+                  << std::endl;
+
+        pick_place_simple(start, target);
+    }
+
+    /*
     start.position.x = -0.4476;
     start.position.y = 0.1147;
     start.position.z = Z_MIN;
@@ -661,6 +713,5 @@ int main(int argc, char **args)
     q_orientation.normalize();
 
     target.orientation = tf2::toMsg(q_orientation);
-
-    pick_place_simple(start, target);
+    */
 }
