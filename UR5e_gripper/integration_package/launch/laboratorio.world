@@ -28,14 +28,6 @@
         <pose>-0.51 -0.34 0 0 -0 0</pose>
       </model>
 
-      <model name='parallelepipedo'>
-        <pose>0.454589 0.190526 0.90 0 0 0</pose>
-      </model>
-
-      <model name='cubo'>
-        <pose>0.454589 0.290526 0.90 0 0 0</pose>
-      </model>
-
       <light name='sun'>
         <pose>0 0 10 0 -0 0</pose>
       </light>

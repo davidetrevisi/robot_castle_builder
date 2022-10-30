@@ -58,7 +58,7 @@
 #define PARALLELEPIPED_MEASURE 0.05
 
 static geometry_msgs::Pose cube_buffer_pose, parallelepiped_buffer_pose;
-static const std::string delim = "_";
+static const char delim = '_';
 static const std::string PLANNING_GROUP_ARM = "manipulator";
 static const std::string PLANNING_GROUP_GRIPPER = "endeffector";
 
@@ -142,7 +142,7 @@ void setup()
 
     // Definisco l'oggetto di collisione
     block_collision.link_name = "soft_robotics_gripper_base_link";
-    block_collision.object.header.frame_id = "base_link";
+    block_collision.object.header.frame_id = arm_group->getPlanningFrame();
     block_collision.touch_links = std::vector<std::string>{"soft_robotics_gripper_base_link",
                                                            "soft_robotics_right_finger_link1",
                                                            "soft_robotics_left_finger_link1",
@@ -250,12 +250,14 @@ void robot_constraints()
 
 void add_cube_collision(geometry_msgs::Pose pose, int index)
 {
-    pose.position.x = -pose.position.x;
-    pose.position.z = Z_DESK + CUBE_MEASURE / 2.0;
+    geometry_msgs::Pose local = pose;
+    local.position.z = Z_DESK + (CUBE_MEASURE / 2.0);
 
     block_collision.object.id = "cube_collision_" + std::to_string(index);
+    block_collision.object.primitives.clear();
+    block_collision.object.primitive_poses.clear();
     block_collision.object.primitives.push_back(cube_primitive);
-    block_collision.object.primitive_poses.push_back(pose);
+    block_collision.object.primitive_poses.push_back(local);
     block_collision.object.operation = block_collision.object.ADD;
 
     planning_scene_interface->applyCollisionObject(block_collision.object);
@@ -270,12 +272,14 @@ void add_cube_collision(geometry_msgs::Pose pose, int index)
 
 void add_parallelepiped_collision(geometry_msgs::Pose pose, int index)
 {
-    pose.position.x = -pose.position.x;
-    pose.position.z = Z_DESK + CUBE_MEASURE / 2.0;
+    geometry_msgs::Pose local = pose;
+    local.position.z = Z_DESK + CUBE_MEASURE / 2.0;
 
     block_collision.object.id = "parallelepiped_collision_" + std::to_string(index);
+    block_collision.object.primitives.clear();
+    block_collision.object.primitive_poses.clear();
     block_collision.object.primitives.push_back(parallelepiped_primitive);
-    block_collision.object.primitive_poses.push_back(pose);
+    block_collision.object.primitive_poses.push_back(local);
     block_collision.object.operation = block_collision.object.ADD;
 
     planning_scene_interface->applyCollisionObject(block_collision.object);
@@ -337,7 +341,7 @@ geometry_msgs::Pose get_buffer_target(int counter)
     }
 
     // Riga dei parallelepipedi: primo parallelepipedo della riga del cambio di oggetti
-    if (counter = ((BUFFER_CUBE_ROWS * BUFFER_CUBE_PER_ROW) - 1))
+    if (counter == ((BUFFER_CUBE_ROWS * BUFFER_CUBE_PER_ROW) - 1))
     {
         return_pose = parallelepiped_buffer_pose;
         return return_pose;
@@ -406,35 +410,31 @@ int get_index_from_buffer_pose(geometry_msgs::Pose target)
     // Ciclo nella mappa cercando un oggetto con la posa desiderata
     for (i = object_poses.begin(); i != object_poses.end(); i++)
     {
-        if (i->second == target)
+        if (i->second.position == target.position)
         {
             // Ho trovato l'oggetto, estraggo l'id dal nome
             std::string s = i->first;
-            unsigned int start = 0U;
 
-            // Divido la stringa fino al primo delimitatore ('_')
-            std::size_t end = s.find(delim);
-            while (end != std::string::npos)
+            std::stringstream s_stream(s);
+            std::string segment;
+
+            // Divido la stringa in sottostringhe "tagliando" in presenza del delimitatore '_'
+            while (std::getline(s_stream, segment, delim))
             {
-                // Converto la parte di stringa divisa in numero
                 char *n;
-                std::strtol(s.substr(start, end - start).c_str(), &n, 10);
-                if (*n)
-                {
-                    // Conversione fallita, non è un numero
-                    start = end + delim.length();
-                    end = s.find(delim, start);
-                }
-                else
+
+                // Provo a convertire la stringa in numero
+                std::strtol(segment.c_str(), &n, 10);
+
+                if (!*n)
                 {
                     // Conversione riuscita, ritorno il valore
-                    return std::stoi(s.substr(start, end - start));
+                    return std::stoi(segment);
                 }
             }
         }
     }
-
-    return 0;
+    return -1;
 }
 
 /**
@@ -905,7 +905,7 @@ void pick_place(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_c
     std::cout << "z: " << start.position.z << std::endl;
     std::cout << "rot x: " << start.orientation.x << std::endl;
     std::cout << "rot y: " << start.orientation.y << std::endl;
-    std::cout << "rot z: " << start.orientation.x << std::endl;
+    std::cout << "rot z: " << start.orientation.z << std::endl;
     std::cout << "rot w: " << start.orientation.w << std::endl
               << std::endl;
 
@@ -940,11 +940,13 @@ void pick_place(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_c
     }
     else if (TARGET_CASTLE_FLAG)
     {
-        // Correggo la posa del gripper con la posa delle collision
-        point.position.x = -point.position.x;
+        geometry_msgs::Pose local = point;
+        local.position.z = Z_DESK + (CUBE_MEASURE / 2.0);
 
-        block_collision.object.primitive_poses.push_back(point);
-        buffer_counter = get_index_from_buffer_pose(point);
+        block_collision.object.primitive_poses.clear();
+        block_collision.object.primitive_poses.push_back(local);
+
+        buffer_counter = get_index_from_buffer_pose(local);
 
         // Riga dei parallelepipedi: considero la variabile 'counter' minore del massimo dei blocchi,
         // perché la funzione sarebbe uscita sopra in caso contrario. I cubi vengono prima dei
@@ -1072,10 +1074,15 @@ void pick_place(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_c
     block_collision.object.operation = block_collision.object.REMOVE;
     planning_scene_interface->applyAttachedCollisionObject(block_collision);
 
-    block_collision.object.pose = target;
-    block_collision.object.pose.position.x = -target.position.x;
-    block_collision.object.pose.position.z = Z_DESK + CUBE_MEASURE / 2.0;
+    geometry_msgs::Pose local = point;
+    local.position.z = Z_DESK + (CUBE_MEASURE / 2.0);
+
+    block_collision.object.primitives.clear();
+    block_collision.object.primitive_poses.clear();
+    block_collision.object.primitives.push_back(cube_primitive);
+    block_collision.object.primitive_poses.push_back(local);
     block_collision.object.operation = block_collision.object.ADD;
+
     planning_scene_interface->applyCollisionObject(block_collision.object);
 
     // Aggiorno la matrice delle collisioni per aggiungere le collisioni del blocco con il gripper

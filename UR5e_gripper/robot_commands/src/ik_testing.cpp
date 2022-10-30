@@ -23,6 +23,8 @@
 
 #include <ros/ros.h>
 
+#include <chrono>
+
 // Definisco le costanti necessarie (utile averle anche se non usate)
 
 #define MAX_VELOCITY_SCALING_FACTOR 0.05
@@ -153,7 +155,7 @@ void execute_Cartesian_Path(geometry_msgs::Pose target)
     int counter = 0;
 
     // Stampa di cortesia della posizione in input
-    std::cout << "Moving towards:\n"
+    std::cout << "Destinazione:\n"
               << std::endl;
     std::cout << "x: " << target.position.x << std::endl;
     std::cout << "y: " << target.position.y << std::endl;
@@ -593,6 +595,31 @@ void pick_place_simple(geometry_msgs::Pose start, geometry_msgs::Pose target)
     ros::Duration(0.5).sleep();
 }
 
+void test(geometry_msgs::Pose target)
+{
+    arm_group->clearPoseTargets();
+    arm_group->setStartStateToCurrentState();
+    arm_group->setPoseTarget(target);
+    ros::Duration(3).sleep();
+    auto start = std::chrono::high_resolution_clock::now();
+    bool success = (arm_group->plan(*arm_motion_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
+
+    if (success)
+    {
+        std::cout << "SUCCESS" << std::endl;
+    }
+    else
+    {
+        std::cout << "ERRORE: Planning fallito!" << std::endl;
+    }
+    auto stop = std::chrono::high_resolution_clock::now();
+    ros::Duration(3).sleep();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start);
+    std::cout << "Tempo di planning: "
+              << duration.count() << " millisecondi" << std::endl
+              << std::endl;
+}
+
 ///////////////////////////////////////////////////////////////////////////////
 
 int main(int argc, char **args)
@@ -605,7 +632,7 @@ int main(int argc, char **args)
     setup();
 
     // Eseguo il planning alla posizione iniziale del braccio (usato solo per Gazebo)
-    arm_group->setJointValueTarget(arm_group->getNamedTargetValues("home"));
+    arm_group->setJointValueTarget(arm_group->getNamedTargetValues("middle_point"));
     arm_group->move();
 
     // Aggiungo le costrizioni al robot
@@ -615,7 +642,7 @@ int main(int argc, char **args)
               << std::endl;
 
     geometry_msgs::Pose start, target;
-    tf2::Quaternion q_orientation;
+    tf2::Quaternion q_orientation1, q_orientation2;
 
     while (ros::ok())
     {
@@ -643,13 +670,13 @@ int main(int argc, char **args)
         std::cin >> start.orientation.w;
         std::cout << std::endl;
 
-        q_orientation.setX(start.orientation.x);
-        q_orientation.setY(start.orientation.y);
-        q_orientation.setZ(start.orientation.z);
-        q_orientation.setW(start.orientation.w);
-        q_orientation.normalize();
+        q_orientation1.setX(start.orientation.x);
+        q_orientation1.setY(start.orientation.y);
+        q_orientation1.setZ(start.orientation.z);
+        q_orientation1.setW(start.orientation.w);
+        q_orientation1.normalize();
 
-        start.orientation = tf2::toMsg(q_orientation);
+        start.orientation = tf2::toMsg(q_orientation1);
 
         std::cout << "Inserire la posa di arrivo: (decimali delimitati da '.')" << std::endl;
         std::cout << std::endl
@@ -675,13 +702,13 @@ int main(int argc, char **args)
         std::cin >> target.orientation.w;
         std::cout << std::endl;
 
-        q_orientation.setX(target.orientation.x);
-        q_orientation.setY(target.orientation.y);
-        q_orientation.setZ(target.orientation.z);
-        q_orientation.setW(target.orientation.w);
-        q_orientation.normalize();
+        q_orientation1.setX(target.orientation.x);
+        q_orientation1.setY(target.orientation.y);
+        q_orientation1.setZ(target.orientation.z);
+        q_orientation1.setW(target.orientation.w);
+        q_orientation1.normalize();
 
-        target.orientation = tf2::toMsg(q_orientation);
+        target.orientation = tf2::toMsg(q_orientation1);
 
         std::cout << "Esecuzione in corso..." << std::endl
                   << std::endl;
@@ -689,29 +716,155 @@ int main(int argc, char **args)
         pick_place_simple(start, target);
     }
 
-    /*
-    start.position.x = -0.4476;
-    start.position.y = 0.1147;
+    /*q_orientation1.setX(-1.0);
+    q_orientation1.setY(0);
+    q_orientation1.setZ(0);
+    q_orientation1.setW(0);
+    q_orientation1.normalize();
+
+    q_orientation2.setX(-0.7);
+    q_orientation2.setY(0.7);
+    q_orientation2.setZ(0);
+    q_orientation2.setW(0);
+    q_orientation2.normalize();
+
+    start.position.x = 0.45;
+    start.position.y = 0.40;
     start.position.z = Z_MIN;
+    start.orientation = tf2::toMsg(q_orientation1);
 
-    q_orientation.setX(0.7);
-    q_orientation.setY(0.7);
-    q_orientation.setZ(0);
-    q_orientation.setW(0);
-    q_orientation.normalize();
+    test(start);
 
-    start.orientation = tf2::toMsg(q_orientation);
+    start.position.x = 0.45;
+    start.position.y = 0.355;
+    start.position.z = Z_MIN;
+    start.orientation = tf2::toMsg(q_orientation1);
 
-    target.position.x = 0.37;
-    target.position.y = 0.355;
-    target.position.z = Z_MIN;
+    test(start);
 
-    q_orientation.setX(-0.7);
-    q_orientation.setY(0.7);
-    q_orientation.setZ(0);
-    q_orientation.setW(0);
-    q_orientation.normalize();
+    start.position.x = 0.45;
+    start.position.y = 0.31;
+    start.position.z = Z_MIN;
+    start.orientation = tf2::toMsg(q_orientation1);
 
-    target.orientation = tf2::toMsg(q_orientation);
-    */
+    test(start);
+
+    start.position.x = 0.45;
+    start.position.y = 0.265;
+    start.position.z = Z_MIN;
+    start.orientation = tf2::toMsg(q_orientation1);
+
+    test(start);
+
+    start.position.x = 0.45;
+    start.position.y = 0.22;
+    start.position.z = Z_MIN;
+    start.orientation = tf2::toMsg(q_orientation1);
+
+    test(start);
+
+    start.position.x = 0.45;
+    start.position.y = 0.175;
+    start.position.z = Z_MIN;
+    start.orientation = tf2::toMsg(q_orientation1);
+
+    test(start);
+
+    start.position.x = 0.45;
+    start.position.y = 0.13;
+    start.position.z = Z_MIN;
+    start.orientation = tf2::toMsg(q_orientation1);
+
+    test(start);
+
+    start.position.x = 0.45;
+    start.position.y = 0.085;
+    start.position.z = Z_MIN;
+    start.orientation = tf2::toMsg(q_orientation1);
+
+    test(start);
+
+    start.position.x = 0.45;
+    start.position.y = 0.04;
+    start.position.z = Z_MIN;
+    start.orientation = tf2::toMsg(q_orientation1);
+
+    test(start);
+
+    start.position.x = 0.45;
+    start.position.y = -0.005;
+    start.position.z = Z_MIN;
+    start.orientation = tf2::toMsg(q_orientation1);
+
+    test(start);
+
+    start.position.x = 0.37;
+    start.position.y = 0.40;
+    start.position.z = Z_MIN;
+    start.orientation = tf2::toMsg(q_orientation1);
+
+    test(start);
+
+    start.position.x = 0.37;
+    start.position.y = 0.355;
+    start.position.z = Z_MIN;
+    start.orientation = tf2::toMsg(q_orientation1);
+
+    test(start);
+
+    start.position.x = 0.37;
+    start.position.y = 0.31;
+    start.position.z = Z_MIN;
+    start.orientation = tf2::toMsg(q_orientation1);
+
+    test(start);
+
+    start.position.x = 0.37;
+    start.position.y = 0.265;
+    start.position.z = Z_MIN;
+    start.orientation = tf2::toMsg(q_orientation1);
+
+    test(start);
+
+    start.position.x = 0.37;
+    start.position.y = 0.22;
+    start.position.z = Z_MIN;
+    start.orientation = tf2::toMsg(q_orientation1);
+
+    test(start);
+
+    start.position.x = 0.37;
+    start.position.y = 0.175;
+    start.position.z = Z_MIN;
+    start.orientation = tf2::toMsg(q_orientation1);
+
+    test(start);
+
+    start.position.x = 0.37;
+    start.position.y = 0.13;
+    start.position.z = Z_MIN;
+    start.orientation = tf2::toMsg(q_orientation1);
+
+    test(start);
+
+    start.position.x = 0.37;
+    start.position.y = 0.085;
+    start.position.z = Z_MIN;
+    start.orientation = tf2::toMsg(q_orientation1);
+
+    test(start);
+
+    start.position.x = 0.37;
+    start.position.y = 0.04;
+    start.position.z = Z_MIN;
+    start.orientation = tf2::toMsg(q_orientation1);
+
+    test(start);
+
+    start.position.x = 0.37;
+    start.position.y = -0.005;
+    start.position.z = Z_MIN;
+    start.orientation = tf2::toMsg(q_orientation1);
+
+    test(start);*/
 }

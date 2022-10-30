@@ -58,7 +58,7 @@
 #define PARALLELEPIPED_MEASURE 0.05
 
 static geometry_msgs::Pose cube_buffer_pose, parallelepiped_buffer_pose;
-static const std::string delim = "_";
+static const char delim = '_';
 static const std::string PLANNING_GROUP_ARM = "manipulator";
 static const std::string PLANNING_GROUP_GRIPPER = "endeffector";
 
@@ -148,7 +148,7 @@ void setup()
 
     // Definisco l'oggetto di collisione
     block_collision.link_name = "soft_robotics_gripper_base_link";
-    block_collision.object.header.frame_id = "base_link";
+    block_collision.object.header.frame_id = arm_group->getPlanningFrame();
     block_collision.touch_links = std::vector<std::string>{"soft_robotics_gripper_base_link",
                                                            "soft_robotics_right_finger_link1",
                                                            "soft_robotics_left_finger_link1",
@@ -256,12 +256,14 @@ void robot_constraints()
 
 void add_cube_collision(geometry_msgs::Pose pose, int index)
 {
-    pose.position.x = -pose.position.x;
-    pose.position.z = Z_DESK + CUBE_MEASURE / 2.0;
+    geometry_msgs::Pose local = pose;
+    local.position.z = Z_DESK + (CUBE_MEASURE / 2.0);
 
     block_collision.object.id = "cube_collision_" + std::to_string(index);
+    block_collision.object.primitives.clear();
+    block_collision.object.primitive_poses.clear();
     block_collision.object.primitives.push_back(cube_primitive);
-    block_collision.object.primitive_poses.push_back(pose);
+    block_collision.object.primitive_poses.push_back(local);
     block_collision.object.operation = block_collision.object.ADD;
 
     planning_scene_interface->applyCollisionObject(block_collision.object);
@@ -276,12 +278,14 @@ void add_cube_collision(geometry_msgs::Pose pose, int index)
 
 void add_parallelepiped_collision(geometry_msgs::Pose pose, int index)
 {
-    pose.position.x = -pose.position.x;
-    pose.position.z = Z_DESK + CUBE_MEASURE / 2.0;
+    geometry_msgs::Pose local = pose;
+    local.position.z = Z_DESK + CUBE_MEASURE / 2.0;
 
     block_collision.object.id = "parallelepiped_collision_" + std::to_string(index);
+    block_collision.object.primitives.clear();
+    block_collision.object.primitive_poses.clear();
     block_collision.object.primitives.push_back(parallelepiped_primitive);
-    block_collision.object.primitive_poses.push_back(pose);
+    block_collision.object.primitive_poses.push_back(local);
     block_collision.object.operation = block_collision.object.ADD;
 
     planning_scene_interface->applyCollisionObject(block_collision.object);
@@ -343,7 +347,7 @@ geometry_msgs::Pose get_buffer_target(int counter)
     }
 
     // Riga dei parallelepipedi: primo parallelepipedo della riga del cambio di oggetti
-    if (counter = ((BUFFER_CUBE_ROWS * BUFFER_CUBE_PER_ROW) - 1))
+    if (counter == ((BUFFER_CUBE_ROWS * BUFFER_CUBE_PER_ROW) - 1))
     {
         return_pose = parallelepiped_buffer_pose;
         return return_pose;
@@ -412,35 +416,31 @@ int get_index_from_buffer_pose(geometry_msgs::Pose target)
     // Ciclo nella mappa cercando un oggetto con la posa desiderata
     for (i = object_poses.begin(); i != object_poses.end(); i++)
     {
-        if (i->second == target)
+        if (i->second.position == target.position)
         {
             // Ho trovato l'oggetto, estraggo l'id dal nome
             std::string s = i->first;
-            unsigned int start = 0U;
 
-            // Divido la stringa fino al primo delimitatore ('_')
-            std::size_t end = s.find(delim);
-            while (end != std::string::npos)
+            std::stringstream s_stream(s);
+            std::string segment;
+
+            // Divido la stringa in sottostringhe "tagliando" in presenza del delimitatore '_'
+            while (std::getline(s_stream, segment, delim))
             {
-                // Converto la parte di stringa divisa in numero
                 char *n;
-                std::strtol(s.substr(start, end - start).c_str(), &n, 10);
-                if (*n)
-                {
-                    // Conversione fallita, non è un numero
-                    start = end + delim.length();
-                    end = s.find(delim, start);
-                }
-                else
+
+                // Provo a convertire la stringa in numero
+                std::strtol(segment.c_str(), &n, 10);
+
+                if (!*n)
                 {
                     // Conversione riuscita, ritorno il valore
-                    return std::stoi(s.substr(start, end - start));
+                    return std::stoi(segment);
                 }
             }
         }
     }
-
-    return 0;
+    return -1;
 }
 
 /**
@@ -574,7 +574,7 @@ void execute_Cartesian_Path(geometry_msgs::Pose target)
     int counter = 0;
 
     // Stampa di cortesia della posizione in input
-    std::cout << "Moving towards:\n"
+    std::cout << "Destinazione:\n"
               << std::endl;
     std::cout << "x: " << target.position.x << std::endl;
     std::cout << "y: " << target.position.y << std::endl;
@@ -906,7 +906,10 @@ void pickup(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_clien
         start.position.x = pos_msg.cx;
         start.position.y = pos_msg.cy;
         start.position.z = pos_msg.cz;
-        start.orientation = tf2::toMsg(tf2::Quaternion(pos_msg.r, pos_msg.p, pos_msg.y));
+        tf2::Quaternion o;
+        o.setRPY(pos_msg.r, pos_msg.p, pos_msg.y);
+        o.normalize();
+        start.orientation = tf2::toMsg(o);
         iscube = pos_msg.cube;
     }
     else if (TARGET_CASTLE_FLAG)
@@ -922,7 +925,7 @@ void pickup(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_clien
     std::cout << "z: " << start.position.z << std::endl;
     std::cout << "rot x: " << start.orientation.x << std::endl;
     std::cout << "rot y: " << start.orientation.y << std::endl;
-    std::cout << "rot z: " << start.orientation.x << std::endl;
+    std::cout << "rot z: " << start.orientation.z << std::endl;
     std::cout << "rot w: " << start.orientation.w << std::endl
               << std::endl;
 
@@ -946,11 +949,13 @@ void pickup(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_clien
     }
     else if (TARGET_CASTLE_FLAG)
     {
-        // Correggo la posa del gripper con la posa delle collision
-        point.position.x = -point.position.x;
+        geometry_msgs::Pose local = point;
+        local.position.z = Z_DESK + (CUBE_MEASURE / 2.0);
 
-        block_collision.object.primitive_poses.push_back(point);
-        buffer_counter = get_index_from_buffer_pose(point);
+        block_collision.object.primitive_poses.clear();
+        block_collision.object.primitive_poses.push_back(local);
+
+        buffer_counter = get_index_from_buffer_pose(local);
 
         // Riga dei parallelepipedi: considero la variabile 'counter' minore del massimo dei blocchi,
         // perché la funzione sarebbe uscita in caso contrario. I cubi vengono prima dei
@@ -1092,7 +1097,7 @@ void place(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_client
     std::cout << "z: " << target.position.z << std::endl;
     std::cout << "rot x: " << target.orientation.x << std::endl;
     std::cout << "rot y: " << target.orientation.y << std::endl;
-    std::cout << "rot z: " << target.orientation.x << std::endl;
+    std::cout << "rot z: " << target.orientation.z << std::endl;
     std::cout << "rot w: " << target.orientation.w << std::endl
               << std::endl;
 
@@ -1133,10 +1138,15 @@ void place(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_client
     block_collision.object.operation = block_collision.object.REMOVE;
     planning_scene_interface->applyAttachedCollisionObject(block_collision);
 
-    block_collision.object.pose = target;
-    block_collision.object.pose.position.x = -target.position.x;
-    block_collision.object.pose.position.z = Z_DESK + CUBE_MEASURE / 2.0;
+    geometry_msgs::Pose local = point;
+    local.position.z = Z_DESK + (CUBE_MEASURE / 2.0);
+
+    block_collision.object.primitives.clear();
+    block_collision.object.primitive_poses.clear();
+    block_collision.object.primitives.push_back(cube_primitive);
+    block_collision.object.primitive_poses.push_back(local);
     block_collision.object.operation = block_collision.object.ADD;
+
     planning_scene_interface->applyCollisionObject(block_collision.object);
 
     // Aggiorno la matrice delle collisioni per aggiungere le collisioni del blocco con il gripper
@@ -1248,8 +1258,8 @@ void buffer_callback(const pcl_action::custom::ConstPtr &msg)
     pos_msg.cx = msg->cx;
     pos_msg.cy = msg->cy;
     pos_msg.cz = msg->cz;
-    pos_msg.r = msg->r;
-    pos_msg.p = msg->p;
+    pos_msg.r = -3.1415927;
+    pos_msg.p = 0.0;
     pos_msg.y = msg->y;
 
     pos_msg.cube = msg->cube;
@@ -1368,6 +1378,8 @@ int main(int argc, char **args)
                 pickup(attach_srv, detach_srv, gripper_pub);
                 place(attach_srv, detach_srv, gripper_pub);
                 reset(attach_srv, detach_srv);
+                std::cout << "Movimento terminato correttamente" << std::endl
+                          << std::endl;
             }
             else
             {
@@ -1375,6 +1387,8 @@ int main(int argc, char **args)
                 pickup(client, detach_srv, gripper_pub);
                 place(client, detach_srv, gripper_pub);
                 reset(client, detach_srv);
+                std::cout << "Movimento terminato correttamente" << std::endl
+                          << std::endl;
             }
 
             // Resetto il flag per la lettura successiva
@@ -1414,6 +1428,8 @@ int main(int argc, char **args)
 
                 // Invio il messaggio di conferma del movimento
                 confirmation_msgs(confirmation_pub);
+                std::cout << "Movimento terminato correttamente" << std::endl
+                          << std::endl;
             }
             else
             {
@@ -1423,6 +1439,8 @@ int main(int argc, char **args)
 
                 // Invio il messaggio di conferma del movimento
                 confirmation_msgs(confirmation_pub);
+                std::cout << "Movimento terminato correttamente" << std::endl
+                          << std::endl;
             }
 
             // Resetto il flag per la lettura successiva
@@ -1439,6 +1457,8 @@ int main(int argc, char **args)
 
                 // Invio il messaggio di conferma del movimento
                 confirmation_msgs(confirmation_pub);
+                std::cout << "Movimento terminato correttamente" << std::endl
+                          << std::endl;
             }
             else
             {
@@ -1448,6 +1468,8 @@ int main(int argc, char **args)
 
                 // Invio il messaggio di conferma del movimento
                 confirmation_msgs(confirmation_pub);
+                std::cout << "Movimento terminato correttamente" << std::endl
+                          << std::endl;
             }
 
             // Resetto il flag per la lettura successiva

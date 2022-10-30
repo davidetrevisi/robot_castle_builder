@@ -117,42 +117,42 @@ void addCollisions()
     // Definisco la posa del tavolo
     desk_pose.orientation.w = -0.707;
     desk_pose.orientation.z = 0.707;
-    desk_pose.position.x = 0;
+    desk_pose.position.x = -0.015;
     desk_pose.position.y = 0.05;
     desk_pose.position.z = Z_DESK / 2;
 
     // Definisco la posa del pannello elettrico posteriore
     electric_panel_pose.orientation.w = -0.707;
     electric_panel_pose.orientation.z = 0.707;
-    electric_panel_pose.position.x = 0;
+    electric_panel_pose.position.x = -0.015;
     electric_panel_pose.position.y = -0.275;
     electric_panel_pose.position.z = Z_DESK + 0.175 / 2;
 
     // Definisco la posa del muro posteriore
     wall_pose.orientation.z = 0.707;
     wall_pose.orientation.w = -0.707;
-    wall_pose.position.x = 0;
+    wall_pose.position.x = -0.015;
     wall_pose.position.y = -0.40;
     wall_pose.position.z = 0.918;
 
     // Definisco la posa del muro anteriore
     front_wall_pose.orientation.z = 0.707;
     front_wall_pose.orientation.w = -0.707;
-    front_wall_pose.position.x = 0;
+    front_wall_pose.position.x = -0.015;
     front_wall_pose.position.y = 0.50;
     front_wall_pose.position.z = 0.918;
 
     // Definisco la posa del supporto superiore
     top_plate_pose.orientation.z = 0.707;
     top_plate_pose.orientation.w = -0.707;
-    top_plate_pose.position.x = 0;
+    top_plate_pose.position.x = -0.015;
     top_plate_pose.position.y = 0.025;
     top_plate_pose.position.z = Z_BASE_LINK + 0.05 / 2;
 
     // Definisco la posa della presa elettrica
     plug_pose.orientation.z = 0.707;
     plug_pose.orientation.w = -0.707;
-    plug_pose.position.x = -0.4;
+    plug_pose.position.x = -0.415;
     plug_pose.position.y = -0.12;
     plug_pose.position.z = Z_DESK + 0.175 / 2;
 
