@@ -12,12 +12,6 @@
     <include>
       <uri>model://laboratorio</uri>
     </include>
-    <include>
-      <uri>model://cubo</uri>
-    </include>
-    <include>
-      <uri>model://parallelepipedo</uri>
-    </include>
 
     <gravity>0 0 -9.8</gravity>
 

@@ -38,8 +38,11 @@
 
 #define SIMULATION true
 
-#define MAX_VELOCITY_SCALING_FACTOR 0.05
-#define MAX_ACCELLERATION_SCALING_FACTOR 0.05
+#define MAX_VELOCITY_SCALING_FACTOR 0.35
+#define MAX_ACCELLERATION_SCALING_FACTOR 0.35
+
+#define CARTESIAN_MAX_VELOCITY_SCALING_FACTOR 0.05
+#define CARTESIAN_MAX_ACCELLERATION_SCALING_FACTOR 0.05
 
 #define Z_BASE_LINK 1.791
 #define Z_DESK 0.8675
@@ -307,12 +310,12 @@ void removeCollision(int sig)
 
     // Rimuovo le collisioni e termino il programma
 
-    for (int i = 1; i < cube_index; i++)
+    for (int i = 1; i <= cube_index; i++)
     {
         object_ids.push_back("cube_collision_" + std::to_string(i));
     }
 
-    for (int i = 1; i < parallelepiped_index; i++)
+    for (int i = 1; i <= parallelepiped_index; i++)
     {
         object_ids.push_back("parallelepiped_collision_" + std::to_string(i));
     }
@@ -409,6 +412,12 @@ int get_index_from_buffer_pose(geometry_msgs::Pose target)
     // Inizializzo le variabili necessarie (mappa e iteratore, legati alla funzione di MoveIt!)
     std::map<std::string, geometry_msgs::Pose> object_poses;
     std::map<std::string, geometry_msgs::Pose>::iterator i;
+    geometry_msgs::Pose local = target;
+
+    std::cout << "Posizione cercata: " << local.position.x << std::endl;
+    std::cout << "Posizione cercata: " << local.position.y << std::endl;
+    std::cout << "Posizione cercata: " << local.position.z << std::endl
+              << std::endl;
 
     // Salvo la lista con le pose degli oggetti di collisione nella scena MoveIt!
     object_poses = planning_scene_interface->getObjectPoses(planning_scene_interface->getKnownObjectNames());
@@ -416,8 +425,17 @@ int get_index_from_buffer_pose(geometry_msgs::Pose target)
     // Ciclo nella mappa cercando un oggetto con la posa desiderata
     for (i = object_poses.begin(); i != object_poses.end(); i++)
     {
-        if (i->second.position == target.position)
+        std::cout << (i->second.position == local.position) << std::endl;
+        std::cout << "Posizione trovata: " << i->second.position.x << std::endl;
+        std::cout << "Posizione trovata: " << i->second.position.y << std::endl;
+        std::cout << "Posizione trovata: " << i->second.position.z << std::endl
+                  << std::endl;
+
+        if (std::abs(i->second.position.x - local.position.x) <= 0.001 &&
+            std::abs(i->second.position.y - local.position.y) <= 0.001 &&
+            std::abs(i->second.position.z - local.position.z) <= 0.001)
         {
+            std::cout << "OK1" << std::endl;
             // Ho trovato l'oggetto, estraggo l'id dal nome
             std::string s = i->first;
 
@@ -431,9 +449,10 @@ int get_index_from_buffer_pose(geometry_msgs::Pose target)
 
                 // Provo a convertire la stringa in numero
                 std::strtol(segment.c_str(), &n, 10);
-
+                std::cout << "OK2" << std::endl;
                 if (!*n)
                 {
+                    std::cout << "OK3" << std::endl;
                     // Conversione riuscita, ritorno il valore
                     return std::stoi(segment);
                 }
@@ -600,10 +619,10 @@ void execute_Cartesian_Path(geometry_msgs::Pose target)
         // Calcolo la traiettoria e salvo il risultato nella variabile 'fraction',
         // che indica la frazione di traiettoria eseguita (1 = 100%). I parametri per la funzione sono:
         //      lista di punti (solo uno in questo caso),
-        //      end-effector resolution (precisione nella posizione, 5mm),
+        //      end-effector resolution (precisione nella posizione, 4mm),
         //      jump threshold (valore soglia per evitare i 'salti', movimenti bruschi, dei joint: 5 dai test risulta buono)
         //      path constraints (costrizioni sulla posizione dei joint, passati quelli definiti a priori)
-        fraction = arm_group->computeCartesianPath(waypoints, 0.005, 5.0, trajectory, robot_constraints);
+        fraction = arm_group->computeCartesianPath(waypoints, 0.004, 5.0, trajectory, robot_constraints);
 
         // Se la traiettoria è stata calcolata completa la assegno, altrimenti ciclo di nuovo
         // incrementando la variabile 'counter'
@@ -617,7 +636,7 @@ void execute_Cartesian_Path(geometry_msgs::Pose target)
             robot_traj->setGroupName(PLANNING_GROUP_ARM);
 
             // Ricalcolo i tempi di ogni punto della traiettoria finale per eventuali errori e per limitare la velocità
-            totg->computeTimeStamps(*robot_traj, MAX_VELOCITY_SCALING_FACTOR, MAX_ACCELLERATION_SCALING_FACTOR);
+            totg->computeTimeStamps(*robot_traj, CARTESIAN_MAX_VELOCITY_SCALING_FACTOR, CARTESIAN_MAX_ACCELLERATION_SCALING_FACTOR);
 
             // Assegno la traiettoria calcolata e la eseguo
             robot_traj->getRobotTrajectoryMsg(trajectory);
@@ -906,11 +925,30 @@ void pickup(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_clien
         start.position.x = pos_msg.cx;
         start.position.y = pos_msg.cy;
         start.position.z = pos_msg.cz;
+        iscube = pos_msg.cube;
         tf2::Quaternion o;
-        o.setRPY(pos_msg.r, pos_msg.p, pos_msg.y);
+
+        if (iscube)
+        {
+            if (pos_msg.y > M_PI_4)
+            {
+                o.setRPY(pos_msg.r, pos_msg.p, pos_msg.y - M_PI_2);
+            }
+            else if (pos_msg.y < -M_PI_4)
+            {
+                o.setRPY(pos_msg.r, pos_msg.p, pos_msg.y + M_PI_2);
+            }
+            else
+            {
+                o.setRPY(pos_msg.r, pos_msg.p, pos_msg.y);
+            }
+        }
+        else
+        {
+            o.setRPY(pos_msg.r, pos_msg.p, pos_msg.y);
+        }
         o.normalize();
         start.orientation = tf2::toMsg(o);
-        iscube = pos_msg.cube;
     }
     else if (TARGET_CASTLE_FLAG)
     {
@@ -1003,6 +1041,7 @@ void pickup(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_clien
         acm.setEntry("cube_collision_" + std::to_string(cube_index), "soft_robotics_left_finger_link1", true);
         acm.setEntry("cube_collision_" + std::to_string(cube_index), "soft_robotics_right_finger_link2", true);
         acm.setEntry("cube_collision_" + std::to_string(cube_index), "soft_robotics_left_finger_link2", true);
+        acm.setEntry("cube_collision_" + std::to_string(cube_index), "desk", true);
     }
     else
     {
@@ -1010,6 +1049,7 @@ void pickup(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_clien
         acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_index), "soft_robotics_left_finger_link1", true);
         acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_index), "soft_robotics_right_finger_link2", true);
         acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_index), "soft_robotics_left_finger_link2", true);
+        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_index), "desk", true);
     }
 
     ls->getPlanningSceneDiffMsg(diff_scene);
@@ -1157,6 +1197,7 @@ void place(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_client
         acm.setEntry("cube_collision_" + std::to_string(cube_index), "soft_robotics_left_finger_link1", false);
         acm.setEntry("cube_collision_" + std::to_string(cube_index), "soft_robotics_right_finger_link2", false);
         acm.setEntry("cube_collision_" + std::to_string(cube_index), "soft_robotics_left_finger_link2", false);
+        acm.setEntry("cube_collision_" + std::to_string(cube_index), "desk", false);
     }
     else
     {
@@ -1164,6 +1205,7 @@ void place(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_client
         acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_index), "soft_robotics_left_finger_link1", false);
         acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_index), "soft_robotics_right_finger_link2", false);
         acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_index), "soft_robotics_left_finger_link2", false);
+        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_index), "desk", false);
     }
 
     ls->getPlanningSceneDiffMsg(diff_scene);
@@ -1240,7 +1282,7 @@ void confirmation_msgs(ros::Publisher confirmation_pub)
 
     ss << "SUCCESS";
     msg.data = ss.str();
-    std::cout << "Invio del messaggio di conferma nel topic 'confirmation_topic'" << msg.data.c_str();
+    std::cout << "Invio del messaggio di conferma nel topic 'confirmation_topic'" << std::endl;
     confirmation_pub.publish(msg);
 }
 
