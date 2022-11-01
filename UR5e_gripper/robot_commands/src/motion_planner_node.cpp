@@ -90,6 +90,8 @@ robot_trajectory::RobotTrajectory *robot_traj;
 int cube_index = 0;
 int parallelepiped_index = 0;
 int buffer_counter = 0;
+int cube_local_index = 0;
+int parallelepiped_local_index = 0;
 
 bool TARGET_BUFFER_FLAG = false;
 bool TARGET_CASTLE_FLAG = false;
@@ -414,28 +416,16 @@ int get_index_from_buffer_pose(geometry_msgs::Pose target)
     std::map<std::string, geometry_msgs::Pose>::iterator i;
     geometry_msgs::Pose local = target;
 
-    std::cout << "Posizione cercata: " << local.position.x << std::endl;
-    std::cout << "Posizione cercata: " << local.position.y << std::endl;
-    std::cout << "Posizione cercata: " << local.position.z << std::endl
-              << std::endl;
-
     // Salvo la lista con le pose degli oggetti di collisione nella scena MoveIt!
     object_poses = planning_scene_interface->getObjectPoses(planning_scene_interface->getKnownObjectNames());
 
     // Ciclo nella mappa cercando un oggetto con la posa desiderata
     for (i = object_poses.begin(); i != object_poses.end(); i++)
     {
-        std::cout << (i->second.position == local.position) << std::endl;
-        std::cout << "Posizione trovata: " << i->second.position.x << std::endl;
-        std::cout << "Posizione trovata: " << i->second.position.y << std::endl;
-        std::cout << "Posizione trovata: " << i->second.position.z << std::endl
-                  << std::endl;
-
         if (std::abs(i->second.position.x - local.position.x) <= 0.001 &&
             std::abs(i->second.position.y - local.position.y) <= 0.001 &&
             std::abs(i->second.position.z - local.position.z) <= 0.001)
         {
-            std::cout << "OK1" << std::endl;
             // Ho trovato l'oggetto, estraggo l'id dal nome
             std::string s = i->first;
 
@@ -449,10 +439,8 @@ int get_index_from_buffer_pose(geometry_msgs::Pose target)
 
                 // Provo a convertire la stringa in numero
                 std::strtol(segment.c_str(), &n, 10);
-                std::cout << "OK2" << std::endl;
                 if (!*n)
                 {
-                    std::cout << "OK3" << std::endl;
                     // Conversione riuscita, ritorno il valore
                     return std::stoi(segment);
                 }
@@ -977,12 +965,14 @@ void pickup(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_clien
         if (iscube)
         {
             cube_index++;
-            add_cube_collision(point, cube_index);
+            cube_local_index = cube_index;
+            add_cube_collision(point, cube_local_index);
         }
         else
         {
             parallelepiped_index++;
-            add_parallelepiped_collision(point, parallelepiped_index);
+            parallelepiped_local_index = parallelepiped_index;
+            add_parallelepiped_collision(point, parallelepiped_local_index);
         }
     }
     else if (TARGET_CASTLE_FLAG)
@@ -1000,13 +990,15 @@ void pickup(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_clien
         // parallelepipedi.
         if (buffer_counter > ((BUFFER_CUBE_ROWS * BUFFER_CUBE_PER_ROW) - 1))
         {
-            block_collision.object.id = "parallelepiped_collision_" + std::to_string(buffer_counter);
+            parallelepiped_local_index = buffer_counter;
+            block_collision.object.id = "parallelepiped_collision_" + std::to_string(parallelepiped_local_index);
             block_collision.object.primitives.push_back(parallelepiped_primitive);
             iscube = false;
         }
         else
         {
-            block_collision.object.id = "cube_collision_" + std::to_string(buffer_counter);
+            cube_local_index = buffer_counter;
+            block_collision.object.id = "cube_collision_" + std::to_string(cube_local_index);
             block_collision.object.primitives.push_back(cube_primitive);
             iscube = true;
         }
@@ -1037,19 +1029,19 @@ void pickup(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_clien
 
     if (iscube)
     {
-        acm.setEntry("cube_collision_" + std::to_string(cube_index), "soft_robotics_right_finger_link1", true);
-        acm.setEntry("cube_collision_" + std::to_string(cube_index), "soft_robotics_left_finger_link1", true);
-        acm.setEntry("cube_collision_" + std::to_string(cube_index), "soft_robotics_right_finger_link2", true);
-        acm.setEntry("cube_collision_" + std::to_string(cube_index), "soft_robotics_left_finger_link2", true);
-        acm.setEntry("cube_collision_" + std::to_string(cube_index), "desk", true);
+        acm.setEntry("cube_collision_" + std::to_string(cube_local_index), "soft_robotics_right_finger_link1", true);
+        acm.setEntry("cube_collision_" + std::to_string(cube_local_index), "soft_robotics_left_finger_link1", true);
+        acm.setEntry("cube_collision_" + std::to_string(cube_local_index), "soft_robotics_right_finger_link2", true);
+        acm.setEntry("cube_collision_" + std::to_string(cube_local_index), "soft_robotics_left_finger_link2", true);
+        acm.setEntry("cube_collision_" + std::to_string(cube_local_index), "desk", true);
     }
     else
     {
-        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_index), "soft_robotics_right_finger_link1", true);
-        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_index), "soft_robotics_left_finger_link1", true);
-        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_index), "soft_robotics_right_finger_link2", true);
-        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_index), "soft_robotics_left_finger_link2", true);
-        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_index), "desk", true);
+        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_local_index), "soft_robotics_right_finger_link1", true);
+        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_local_index), "soft_robotics_left_finger_link1", true);
+        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_local_index), "soft_robotics_right_finger_link2", true);
+        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_local_index), "soft_robotics_left_finger_link2", true);
+        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_local_index), "desk", true);
     }
 
     ls->getPlanningSceneDiffMsg(diff_scene);
@@ -1060,11 +1052,11 @@ void pickup(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_clien
     // Chiudo il gripper e aggancio l'oggetto
     if (iscube)
     {
-        close_gripper(gripper_pub, demo_client_attach, "cubo_" + std::to_string(cube_index));
+        close_gripper(gripper_pub, demo_client_attach, "cubo_" + std::to_string(cube_local_index));
     }
     else
     {
-        close_gripper(gripper_pub, demo_client_attach, "parallelepipedo_" + std::to_string(parallelepiped_index));
+        close_gripper(gripper_pub, demo_client_attach, "parallelepipedo_" + std::to_string(parallelepiped_local_index));
     }
     ros::Duration(0.5).sleep();
 
@@ -1130,8 +1122,9 @@ void place(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_client
     }
 
     // Stampa di cortesia delle posizioni
-    std::cout << "Destinazione finale:\n"
-              << std::endl;
+    std::cout
+        << "Destinazione finale:\n"
+        << std::endl;
     std::cout << "x: " << target.position.x << std::endl;
     std::cout << "y: " << target.position.y << std::endl;
     std::cout << "z: " << target.position.z << std::endl;
@@ -1166,11 +1159,11 @@ void place(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_client
     // Apro il gripper e sgancio l'oggetto
     if (iscube)
     {
-        open_gripper(gripper_pub, demo_client_attach, "cubo_" + std::to_string(cube_index));
+        open_gripper(gripper_pub, demo_client_attach, "cubo_" + std::to_string(cube_local_index));
     }
     else
     {
-        open_gripper(gripper_pub, demo_client_attach, "parallelepipedo_" + std::to_string(parallelepiped_index));
+        open_gripper(gripper_pub, demo_client_attach, "parallelepipedo_" + std::to_string(parallelepiped_local_index));
     }
     ros::Duration(0.5).sleep();
 
@@ -1193,19 +1186,19 @@ void place(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_client
 
     if (iscube)
     {
-        acm.setEntry("cube_collision_" + std::to_string(cube_index), "soft_robotics_right_finger_link1", false);
-        acm.setEntry("cube_collision_" + std::to_string(cube_index), "soft_robotics_left_finger_link1", false);
-        acm.setEntry("cube_collision_" + std::to_string(cube_index), "soft_robotics_right_finger_link2", false);
-        acm.setEntry("cube_collision_" + std::to_string(cube_index), "soft_robotics_left_finger_link2", false);
-        acm.setEntry("cube_collision_" + std::to_string(cube_index), "desk", false);
+        acm.setEntry("cube_collision_" + std::to_string(cube_local_index), "soft_robotics_right_finger_link1", false);
+        acm.setEntry("cube_collision_" + std::to_string(cube_local_index), "soft_robotics_left_finger_link1", false);
+        acm.setEntry("cube_collision_" + std::to_string(cube_local_index), "soft_robotics_right_finger_link2", false);
+        acm.setEntry("cube_collision_" + std::to_string(cube_local_index), "soft_robotics_left_finger_link2", false);
+        acm.setEntry("cube_collision_" + std::to_string(cube_local_index), "desk", false);
     }
     else
     {
-        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_index), "soft_robotics_right_finger_link1", false);
-        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_index), "soft_robotics_left_finger_link1", false);
-        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_index), "soft_robotics_right_finger_link2", false);
-        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_index), "soft_robotics_left_finger_link2", false);
-        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_index), "desk", false);
+        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_local_index), "soft_robotics_right_finger_link1", false);
+        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_local_index), "soft_robotics_left_finger_link1", false);
+        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_local_index), "soft_robotics_right_finger_link2", false);
+        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_local_index), "soft_robotics_left_finger_link2", false);
+        acm.setEntry("parallelepiped_collision_" + std::to_string(parallelepiped_local_index), "desk", false);
     }
 
     ls->getPlanningSceneDiffMsg(diff_scene);
