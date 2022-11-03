@@ -1172,7 +1172,9 @@ void place(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_client
     planning_scene_interface->applyAttachedCollisionObject(block_collision);
 
     geometry_msgs::Pose local = point;
-    local.position.z = Z_DESK + (CUBE_MEASURE / 2.0);
+
+    // 0.14 = 1.02 - [Z_DESK + (CUBE_MEASURE / 2.0)]
+    local.position.z = local.position.z - 0.14;
 
     block_collision.object.primitives.clear();
     block_collision.object.primitive_poses.clear();
