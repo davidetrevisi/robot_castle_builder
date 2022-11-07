@@ -1,6 +1,6 @@
 <?xml version='1.0'?>
 <sdf version='1.7'>
-  <model name='cubo'>
+  <model name='cubo_giallo'>
     <link name='link'>
       <inertial>
         <mass>1</mass>
@@ -33,7 +33,7 @@
           <shader type='pixel'>
             <normal_map>__default__</normal_map>
           </shader>
-          <ambient>0.082 0.012 0.635 0</ambient>
+          <ambient>250 255 0 1</ambient>
           <diffuse>0.7 0.7 0.7 1</diffuse>
           <specular>0.01 0.01 0.01 1</specular>
           <emissive>0 0 0 1</emissive>
@@ -83,8 +83,8 @@
               <soft_erp>0.2</soft_erp>
               <kp>1e+13</kp>
               <kd>1</kd>
-              <max_vel>0.01</max_vel>
-              <min_depth>0</min_depth>
+              <max_vel>0.0</max_vel>
+              <min_depth>0.001</min_depth>
             </ode>
             <bullet>
               <split_impulse>1</split_impulse>

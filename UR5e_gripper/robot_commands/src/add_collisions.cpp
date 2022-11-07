@@ -187,7 +187,7 @@ void addCollisions()
     collision_objects.push_back(*desk);
     collision_objects.push_back(*electric_panel);
     collision_objects.push_back(*wall);
-    collision_objects.push_back(*front_wall);
+    // collision_objects.push_back(*front_wall);
     collision_objects.push_back(*top_plate);
     collision_objects.push_back(*plug);
 
@@ -211,7 +211,7 @@ void removeCollision(int sig)
     object_ids.push_back(desk->id);
     object_ids.push_back(electric_panel->id);
     object_ids.push_back(wall->id);
-    object_ids.push_back(front_wall->id);
+    // object_ids.push_back(front_wall->id);
     object_ids.push_back(top_plate->id);
     object_ids.push_back(plug->id);
 

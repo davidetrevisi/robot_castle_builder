@@ -19,6 +19,7 @@
 #include <moveit_msgs/JointConstraint.h>
 #include <moveit_msgs/AttachedCollisionObject.h>
 
+#include <gazebo_msgs/SpawnModel.h>
 #include <gazebo_ros_link_attacher/Attach.h>
 #include <gazebo_ros_link_attacher/AttachRequest.h>
 #include <gazebo_ros_link_attacher/AttachResponse.h>
@@ -33,6 +34,7 @@
 #include <ros/ros.h>
 
 #include <signal.h>
+#include <fstream>
 
 // Definisco le costanti necessarie (utile averle anche se non usate)
 
@@ -90,8 +92,11 @@ robot_trajectory::RobotTrajectory *robot_traj;
 int cube_index = 0;
 int parallelepiped_index = 0;
 int buffer_counter = 0;
+std::array<int, ((BUFFER_PARA_ROWS * BUFFER_PARA_PER_ROW) + (BUFFER_CUBE_ROWS * BUFFER_CUBE_PER_ROW))> buffer_vector;
 int cube_local_index = 0;
 int parallelepiped_local_index = 0;
+
+ros::ServiceClient attach_srv, detach_srv, client, spawn_model;
 
 bool TARGET_BUFFER_FLAG = false;
 bool TARGET_CASTLE_FLAG = false;
@@ -179,6 +184,9 @@ void setup()
     parallelepiped_buffer_pose.position.z = Z_MIN;
 
     parallelepiped_buffer_pose.orientation = tf2::toMsg(parallelepiped_orientation);
+
+    // Inizializzo l'array del buffer
+    buffer_vector.fill(0);
 }
 
 /**
@@ -253,6 +261,125 @@ void robot_constraints()
 }
 
 /**
+ * @brief Funzione che aggiunge il blocco specificato a Gazebo
+ *
+ * @param client client ROS utilizzato per aggiungere gli oggetti
+ * @param pose posa (X, Y, Z, x, y, z, w) dell'oggetto da aggiungere
+ * @param index indice dell'oggetto da aggiungere
+ */
+
+void add_cube(geometry_msgs::Pose pose, int index)
+{
+    gazebo_msgs::SpawnModel model;
+    geometry_msgs::Pose local = pose;
+
+    local.position.z = local.position.z - 0.12;
+    model.request.initial_pose = local;
+
+    if (index <= 4)
+    {
+        // Leggo il file .sdf
+        std::ifstream file;
+        file.open("/home/davide/catkin_ws/src/UR5e_gripper/integration_package/models/cubo_giallo/model.sdf");
+
+        if (file)
+        {
+            std::ostringstream sstr;
+            sstr << file.rdbuf();
+            model.request.model_xml = sstr.str();
+        }
+        else
+        {
+            std::cout << "Errore nell'apertura del file" << std::endl;
+        }
+    }
+    else if (index <= 8)
+    {
+        std::ifstream file;
+        file.open("/home/davide/catkin_ws/src/UR5e_gripper/integration_package/models/cubo_rosso/model.sdf");
+
+        if (file)
+        {
+            std::ostringstream sstr;
+            sstr << file.rdbuf();
+            model.request.model_xml = sstr.str();
+        }
+        else
+        {
+            std::cout << "Errore nell'apertura del file" << std::endl;
+        }
+    }
+    else
+    {
+        std::ifstream file;
+        file.open("/home/davide/catkin_ws/src/UR5e_gripper/integration_package/models/cubo_blu/model.sdf");
+
+        if (file)
+        {
+            std::ostringstream sstr;
+            sstr << file.rdbuf();
+            model.request.model_xml = sstr.str();
+        }
+        else
+        {
+            std::cout << "Errore nell'apertura del file" << std::endl;
+        }
+    }
+
+    model.request.model_name = "cubo_" + std::to_string(index);
+    model.request.reference_frame = "world";
+    model.request.robot_namespace = "robot_description";
+
+    spawn_model.waitForExistence();
+    if (!spawn_model.call(model))
+    {
+        std::cout << "Errore nell'aggiunta degli oggetti" << std::endl;
+    }
+}
+
+/**
+ * @brief Funzione che aggiunge il blocco specificato a Gazebo
+ *
+ * @param client client ROS utilizzato per aggiungere gli oggetti
+ * @param pose posa (X, Y, Z, x, y, z, w) dell'oggetto da aggiungere
+ * @param index indice dell'oggetto da aggiungere
+ */
+
+void add_parallelepiped(geometry_msgs::Pose pose, int index)
+{
+    gazebo_msgs::SpawnModel model;
+    geometry_msgs::Pose local = pose;
+
+    local.position.z = local.position.z - 0.12;
+
+    model.request.initial_pose = local;
+
+    // Leggo il file .sdf
+    std::ifstream file;
+    file.open("/home/davide/catkin_ws/src/UR5e_gripper/integration_package/models/parallelepipedo/model.sdf");
+
+    if (file)
+    {
+        std::ostringstream sstr;
+        sstr << file.rdbuf();
+        model.request.model_xml = sstr.str();
+    }
+    else
+    {
+        std::cout << "Errore nell'apertura del file" << std::endl;
+    }
+
+    model.request.model_name = "parallelepipedo_" + std::to_string(index);
+    model.request.reference_frame = "world";
+    model.request.robot_namespace = "parallelepiped_spawner";
+
+    if (!spawn_model.call(model))
+    {
+        std::cout << "Errore nell'aggiunta degli oggetti" << std::endl;
+    }
+}
+
+/**
  * @brief Funzione che aggiunge l'oggetto di collisione 'cube_collision_ \e index ' alla scena MoveIt!
  *
  * @param pose posa (X, Y, Z, x, y, z, w) dell'oggetto da aggiungere alle collisioni
@@ -261,6 +388,11 @@ void robot_constraints()
 
 void add_cube_collision(geometry_msgs::Pose pose, int index)
 {
+    if (SIMULATION)
+    {
+        add_cube(pose, index);
+    }
+
     geometry_msgs::Pose local = pose;
     local.position.z = Z_DESK + (CUBE_MEASURE / 2.0);
 
@@ -283,6 +415,11 @@ void add_cube_collision(geometry_msgs::Pose pose, int index)
 
 void add_parallelepiped_collision(geometry_msgs::Pose pose, int index)
 {
+    if (SIMULATION)
+    {
+        add_parallelepiped(pose, index);
+    }
+
     geometry_msgs::Pose local = pose;
     local.position.z = Z_DESK + CUBE_MEASURE / 2.0;
 
@@ -341,63 +478,98 @@ geometry_msgs::Pose get_buffer_target(int counter)
 {
     geometry_msgs::Pose return_pose;
 
-    // Controllo se buffer pieno
     if (counter > (BUFFER_CUBE_ROWS * BUFFER_CUBE_PER_ROW + BUFFER_PARA_ROWS * BUFFER_PARA_PER_ROW))
     {
         std::cout << "ERRORE: Buffer pieno!" << std::endl
                   << std::endl;
-        return_pose.position.x = return_pose.position.y = return_pose.position.z = 0;
-        return_pose.orientation.x = return_pose.orientation.y = return_pose.orientation.z = return_pose.orientation.w = 0;
-        return return_pose;
+        exit(1);
     }
 
-    // Riga dei parallelepipedi: primo parallelepipedo della riga del cambio di oggetti
-    if (counter == ((BUFFER_CUBE_ROWS * BUFFER_CUBE_PER_ROW) - 1))
+    if (iscube)
     {
-        return_pose = parallelepiped_buffer_pose;
-        return return_pose;
-    }
+        int element = 0;
 
-    // Riga dei parallelepipedi: considero la variabile 'counter' minore del massimo dei blocchi,
-    // perché la funzione sarebbe uscita sopra in caso contrario. I cubi vengono prima dei
-    // parallelepipedi.
-    if (counter > ((BUFFER_CUBE_ROWS * BUFFER_CUBE_PER_ROW) - 1))
-    {
-        // Controllo se ho finito i blocchi nella riga in cui mi trovo
-        if (counter % BUFFER_PARA_PER_ROW == (BUFFER_PARA_PER_ROW - 1))
+        for (int i = 0; i < buffer_vector.size(); i++)
         {
-            // Passo alla riga successiva
-            return_pose = parallelepiped_buffer_pose;
+            std::cout << "Vector " << i << " = " << buffer_vector[i] << std::endl;
+        }
 
-            return_pose.position.x = return_pose.position.x - BUFFER_ROW_SPACE;
+        auto check = std::find((buffer_vector.rbegin() + (buffer_vector.size() - (BUFFER_CUBE_PER_ROW * BUFFER_CUBE_ROWS))), buffer_vector.rend(), 1);
+        if (check != buffer_vector.rend())
+        {
+            element = (buffer_vector.rend() - check);
+            std::cout << "Element: " << element << std::endl;
+        }
+
+        if (buffer_vector[0] == 0)
+        {
+            std::cout << "primo blocco" << std::endl;
+            // Primo blocco
+            return_pose = cube_buffer_pose;
+            buffer_vector[0] = 1;
+            return return_pose;
+        }
+        else if (element == BUFFER_CUBE_PER_ROW)
+        {
+            std::cout << "cambio riga" << std::endl;
+            // Passo alla riga successiva
+            cube_buffer_pose.position.x = cube_buffer_pose.position.x - BUFFER_ROW_SPACE;
+            buffer_vector[element] = 1;
+            return_pose = cube_buffer_pose;
             return return_pose;
         }
         else
         {
+            std::cout << "blocco dopo" << std::endl;
             // Passo al blocco successivo nella riga
-            return_pose = parallelepiped_buffer_pose;
-
-            return_pose.position.y = return_pose.position.y - (BUFFER_PARA_SPACE * (counter % BUFFER_PARA_PER_ROW));
+            return_pose = cube_buffer_pose;
+            buffer_vector[element] = 1;
+            return_pose.position.y = return_pose.position.y - (BUFFER_CUBE_SPACE * ((element) % BUFFER_CUBE_PER_ROW));
             return return_pose;
         }
     }
-
-    // Righe dei cubi: controllo se ho finito i blocchi nella riga in cui mi trovo
-    if (counter % BUFFER_CUBE_PER_ROW == (BUFFER_CUBE_PER_ROW - 1))
-    {
-        // Passo alla riga successiva
-        return_pose = cube_buffer_pose;
-
-        return_pose.position.x = return_pose.position.x - BUFFER_ROW_SPACE;
-        return return_pose;
-    }
     else
     {
-        // Passo al blocco successivo nella riga
-        return_pose = cube_buffer_pose;
+        int element = 0;
 
-        return_pose.position.y = return_pose.position.y - (BUFFER_CUBE_SPACE * (counter % BUFFER_CUBE_PER_ROW));
-        return return_pose;
+        for (int i = 0; i < buffer_vector.size(); i++)
+        {
+            std::cout << "Vector " << i << " = " << buffer_vector[i] << std::endl;
+        }
+
+        auto check = std::find(buffer_vector.rbegin(), (buffer_vector.rend() - (BUFFER_CUBE_PER_ROW * BUFFER_CUBE_ROWS)), 1);
+        if (check != (buffer_vector.rend() - (BUFFER_CUBE_PER_ROW * BUFFER_CUBE_ROWS)))
+        {
+            element = ((buffer_vector.rend() - (BUFFER_CUBE_PER_ROW * BUFFER_CUBE_ROWS)) - check);
+            std::cout << "element: " << element << std::endl;
+        }
+
+        if (buffer_vector[(BUFFER_CUBE_PER_ROW * BUFFER_CUBE_ROWS)] == 0)
+        {
+            std::cout << "primo blocco" << std::endl;
+            // Primo blocco
+            return_pose = parallelepiped_buffer_pose;
+            buffer_vector[(BUFFER_CUBE_PER_ROW * BUFFER_CUBE_ROWS)] = 1;
+            return return_pose;
+        }
+        else if (element == BUFFER_PARA_PER_ROW)
+        {
+            std::cout << "cambio riga" << std::endl;
+            // Passo alla riga successiva
+            parallelepiped_buffer_pose.position.x = parallelepiped_buffer_pose.position.x - BUFFER_ROW_SPACE;
+            buffer_vector[element] = 1;
+            return_pose = parallelepiped_buffer_pose;
+            return return_pose;
+        }
+        else
+        {
+            std::cout << "blocco dopo" << std::endl;
+            // Passo al blocco successivo nella riga
+            return_pose = parallelepiped_buffer_pose;
+            buffer_vector[(BUFFER_CUBE_PER_ROW * BUFFER_CUBE_ROWS) + element] = 1;
+            return_pose.position.y = return_pose.position.y - (BUFFER_PARA_SPACE * ((element) % BUFFER_PARA_PER_ROW));
+            return return_pose;
+        }
     }
 }
 
@@ -454,12 +626,10 @@ int get_index_from_buffer_pose(geometry_msgs::Pose target)
  * @brief Funzione che esegue l'apertura del gripper in ambiente reale e simulato
  *
  * @param pub publisher ROS utlilzzato per l'invio di messaggi nel topic 'gripper_controller_cmd'. Usato solo in ambiente reale
- * @param client client ROS utilizzato per riconnettere il robot dopo l'invio del messaggio al gripper (ambiente reale)
- *               oppure client ROS per l'apertura del gripper (ambiente simulato)
  * @param model nome del modello di Gazebo da rilasciare dopo l'apertura ( \e cube-parallelepiped , usato soltanto in Gazebo)
  */
 
-void open_gripper(ros::Publisher pub, ros::ServiceClient client, std::string model)
+void open_gripper(ros::Publisher pub, std::string model)
 {
     if (SIMULATION)
     {
@@ -490,7 +660,11 @@ void open_gripper(ros::Publisher pub, ros::ServiceClient client, std::string mod
         detach.request.link_name_2 = "wrist_3_link";
         detach.request.model_name_2 = "robot";
 
-        client.call(detach);
+        detach_srv.waitForExistence();
+        if (!detach_srv.call(detach))
+        {
+            std::cout << "Errore nello sgancio degli oggetti" << std::endl;
+        }
     }
     else
     {
@@ -504,7 +678,12 @@ void open_gripper(ros::Publisher pub, ros::ServiceClient client, std::string mod
         pub.publish(msg);
         ros::Duration(1.3).sleep();
         std_srvs::Trigger srv;
-        client.call(srv);
+
+        client.waitForExistence();
+        if (!client.call(srv))
+        {
+            std::cout << "Errore nell'invio del messaggio'" << std::endl;
+        }
     }
 }
 
@@ -512,12 +691,10 @@ void open_gripper(ros::Publisher pub, ros::ServiceClient client, std::string mod
  * @brief Funzione che esegue la chiusura del gripper in ambiente reale e simulato
  *
  * @param pub publisher ROS utlilzzato per l'invio di messaggi nel topic 'gripper_controller_cmd'. Usato solo in ambiente reale
- * @param client client ROS utilizzato per riconnettere il robot dopo l'invio del messaggio al gripper (ambiente reale)
- *               oppure client ROS per l'apertura del gripper (ambiente simulato)
  * @param model nome del modello di Gazebo da prendere dopo l'apertura ( \e cube-parallelepiped , usato soltanto in Gazebo)
  */
 
-void close_gripper(ros::Publisher pub, ros::ServiceClient client, std::string model)
+void close_gripper(ros::Publisher pub, std::string model)
 {
     if (SIMULATION)
     {
@@ -548,7 +725,11 @@ void close_gripper(ros::Publisher pub, ros::ServiceClient client, std::string mo
         attach.request.link_name_2 = "wrist_3_link";
         attach.request.model_name_2 = "robot";
 
-        client.call(attach);
+        attach_srv.waitForExistence();
+        if (!attach_srv.call(attach))
+        {
+            std::cout << "Errore nell'aggancio degli oggetti" << std::endl;
+        }
     }
     else
     {
@@ -562,84 +743,12 @@ void close_gripper(ros::Publisher pub, ros::ServiceClient client, std::string mo
         pub.publish(msg);
         ros::Duration(1.3).sleep();
         std_srvs::Trigger srv;
-        client.call(srv);
-    }
-}
 
-/**
- * @brief Funzione che esegue il planning ed il movimento del braccio linearmente verso una posa dell'end-effector passata come parametro
- *
- * @param target posa (X, Y, Z, x, y, z, w) che dovrà avere l'end-effector del braccio al termine del movimento
- */
-
-void execute_Cartesian_Path(geometry_msgs::Pose target)
-{
-    // Inizializzo le variabili necessarie
-    std::vector<geometry_msgs::Pose> waypoints;
-    moveit_msgs::RobotTrajectory trajectory;
-    double fraction = 0;
-    int counter = 0;
-
-    // Stampa di cortesia della posizione in input
-    std::cout << "Destinazione:\n"
-              << std::endl;
-    std::cout << "x: " << target.position.x << std::endl;
-    std::cout << "y: " << target.position.y << std::endl;
-    std::cout << "z: " << target.position.z << std::endl
-              << std::endl;
-
-    // Aggiungo la posa 'target' alla lista dei waypoint per il calcolo della traiettoria
-    waypoints.push_back(target);
-
-    // Inizializzo l'interfaccia per il movimento eliminando eventuali rimanenze da codice precedente
-    arm_group->clearPoseTargets();
-    arm_group->setStartStateToCurrentState();
-
-    // Inizio un ciclo do-while calcolando la traiettoria finché non è completa oppure se non supero 3 tentativi
-    do
-    {
-        // Se supero la prima iterazione aspetto un secondo
-        if (counter > 0)
+        client.waitForExistence();
+        if (!client.call(srv))
         {
-            ros::Duration(1).sleep();
+            std::cout << "Errore nell'invio del messaggio'" << std::endl;
         }
-
-        // Calcolo la traiettoria e salvo il risultato nella variabile 'fraction',
-        // che indica la frazione di traiettoria eseguita (1 = 100%). I parametri per la funzione sono:
-        //      lista di punti (solo uno in questo caso),
-        //      end-effector resolution (precisione nella posizione, 4mm),
-        //      jump threshold (valore soglia per evitare i 'salti', movimenti bruschi, dei joint: 5 dai test risulta buono)
-        //      path constraints (costrizioni sulla posizione dei joint, passati quelli definiti a priori)
-        fraction = arm_group->computeCartesianPath(waypoints, 0.004, 5.0, trajectory, robot_constraints);
-
-        // Se la traiettoria è stata calcolata completa la assegno, altrimenti ciclo di nuovo
-        // incrementando la variabile 'counter'
-        if (fraction == 1)
-        {
-            robot_state::RobotStatePtr robot_stat = arm_group->getCurrentState();
-
-            // Inizializzo la traiettoria per il ricalcolo dei tempi
-            robot_traj->clear();
-            robot_traj->setRobotTrajectoryMsg(*robot_stat, trajectory);
-            robot_traj->setGroupName(PLANNING_GROUP_ARM);
-
-            // Ricalcolo i tempi di ogni punto della traiettoria finale per eventuali errori e per limitare la velocità
-            totg->computeTimeStamps(*robot_traj, CARTESIAN_MAX_VELOCITY_SCALING_FACTOR, CARTESIAN_MAX_ACCELLERATION_SCALING_FACTOR);
-
-            // Assegno la traiettoria calcolata e la eseguo
-            robot_traj->getRobotTrajectoryMsg(trajectory);
-            arm_group->execute(trajectory);
-        }
-
-        counter++;
-    } while (fraction < 1 && counter < 3);
-
-    // Se non è stata calcolata nessuna traiettoria completa stampo un messaggio di errore e termino l'esecuzione
-    if (fraction < 1)
-    {
-        std::cout << "ERRORE: Planning cartesiano fallito!" << std::endl
-                  << std::endl;
-        exit(1);
     }
 }
 
@@ -767,6 +876,83 @@ void motion_plan_middle(geometry_msgs::Pose target)
 }
 
 /**
+ * @brief Funzione che esegue il planning ed il movimento del braccio linearmente verso una posa dell'end-effector passata come parametro
+ *
+ * @param target posa (X, Y, Z, x, y, z, w) che dovrà avere l'end-effector del braccio al termine del movimento
+ */
+
+void execute_Cartesian_Path(geometry_msgs::Pose target)
+{
+    // Inizializzo le variabili necessarie
+    std::vector<geometry_msgs::Pose> waypoints;
+    moveit_msgs::RobotTrajectory trajectory;
+    double fraction = 0;
+    int counter = 0;
+
+    // Stampa di cortesia della posizione in input
+    std::cout << "Destinazione:\n"
+              << std::endl;
+    std::cout << "x: " << target.position.x << std::endl;
+    std::cout << "y: " << target.position.y << std::endl;
+    std::cout << "z: " << target.position.z << std::endl
+              << std::endl;
+
+    // Aggiungo la posa 'target' alla lista dei waypoint per il calcolo della traiettoria
+    waypoints.push_back(target);
+
+    // Inizializzo l'interfaccia per il movimento eliminando eventuali rimanenze da codice precedente
+    arm_group->clearPoseTargets();
+    arm_group->setStartStateToCurrentState();
+
+    // Inizio un ciclo do-while calcolando la traiettoria finché non è completa oppure se non supero 3 tentativi
+    do
+    {
+        // Se supero la prima iterazione aspetto un secondo
+        if (counter > 0)
+        {
+            ros::Duration(1).sleep();
+        }
+
+        // Calcolo la traiettoria e salvo il risultato nella variabile 'fraction',
+        // che indica la frazione di traiettoria eseguita (1 = 100%). I parametri per la funzione sono:
+        //      lista di punti (solo uno in questo caso),
+        //      end-effector resolution (precisione nella posizione, 5mm),
+        //      jump threshold (valore soglia per evitare i 'salti', movimenti bruschi, dei joint: 5 dai test risulta buono)
+        //      path constraints (costrizioni sulla posizione dei joint, passati quelli definiti a priori)
+        fraction = arm_group->computeCartesianPath(waypoints, 0.005, 5.0, trajectory, robot_constraints);
+
+        // Se la traiettoria è stata calcolata completa la assegno, altrimenti ciclo di nuovo
+        // incrementando la variabile 'counter'
+        if (fraction == 1)
+        {
+            robot_state::RobotStatePtr robot_stat = arm_group->getCurrentState();
+
+            // Inizializzo la traiettoria per il ricalcolo dei tempi
+            robot_traj->clear();
+            robot_traj->setRobotTrajectoryMsg(*robot_stat, trajectory);
+            robot_traj->setGroupName(PLANNING_GROUP_ARM);
+
+            // Ricalcolo i tempi di ogni punto della traiettoria finale per eventuali errori e per limitare la velocità
+            totg->computeTimeStamps(*robot_traj, CARTESIAN_MAX_VELOCITY_SCALING_FACTOR, CARTESIAN_MAX_ACCELLERATION_SCALING_FACTOR);
+
+            // Assegno la traiettoria calcolata e la eseguo
+            robot_traj->getRobotTrajectoryMsg(trajectory);
+            arm_group->execute(trajectory);
+        }
+
+        counter++;
+    } while (fraction < 1 && counter < 3);
+
+    // Se non è stata calcolata nessuna traiettoria completa stampo un messaggio di errore e cambio esecuzione
+    if (fraction < 1)
+    {
+        std::cout << "ERRORE: Planning cartesiano fallito!" << std::endl
+                  << std::endl;
+        motion_plan(target);
+    }
+}
+
+/**
  * @brief Funzione che sceglie se far passare il braccio per il punto medio oppure no.
  *        Il passaggio avviene supponendo di divirere il tavolo di lavoro in due metà
  *        rispetto all'origine del robot: se origine e destinazione si trovano sulla stessa metà
@@ -882,13 +1068,10 @@ void rotate_end_effector(int joint_number, double amount)
  * @brief Funzione che esegue il movimento in sequenza del braccio, chiamando le apposite funzioni, per la presa
  *        dei blocchi (con collisioni)
  *
- * @param demo_client_attach client ROS utilizzato per riconnettere il robot dopo l'invio del messaggio al gripper (ambiente reale)
- *               oppure client ROS per l'apertura del gripper (ambiente simulato)
- * @param demo_client_detach client ROS utilizzato per la chiusura del gripper (ambiente simulato)
  * @param gripper_pub publisher ROS utlilzzato per l'invio di messaggi nel topic 'gripper_controller_cmd'. Usato solo in ambiente reale
  */
 
-void pickup(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_client_detach, ros::Publisher gripper_pub)
+void pickup(ros::Publisher gripper_pub)
 {
     // Inizializzo le variabili necessarie
     robot_model_loader::RobotModelLoaderPtr robot_model_loader(new robot_model_loader::RobotModelLoader("robot_description"));
@@ -1052,11 +1235,11 @@ void pickup(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_clien
     // Chiudo il gripper e aggancio l'oggetto
     if (iscube)
     {
-        close_gripper(gripper_pub, demo_client_attach, "cubo_" + std::to_string(cube_local_index));
+        close_gripper(gripper_pub, "cubo_" + std::to_string(cube_local_index));
     }
     else
     {
-        close_gripper(gripper_pub, demo_client_attach, "parallelepipedo_" + std::to_string(parallelepiped_local_index));
+        close_gripper(gripper_pub, "parallelepipedo_" + std::to_string(parallelepiped_local_index));
     }
     ros::Duration(0.5).sleep();
 
@@ -1086,13 +1269,10 @@ void pickup(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_clien
  * @brief Funzione che esegue il movimento in sequenza del braccio, chiamando le apposite funzioni, per il posizionamento
  *        dei blocchi (con collisioni)
  *
- * @param demo_client_attach client ROS utilizzato per riconnettere il robot dopo l'invio del messaggio al gripper (ambiente reale)
- *               oppure client ROS per l'apertura del gripper (ambiente simulato)
- * @param demo_client_detach client ROS utilizzato per la chiusura del gripper (ambiente simulato)
  * @param gripper_pub publisher ROS utlilzzato per l'invio di messaggi nel topic 'gripper_controller_cmd'. Usato solo in ambiente reale
  */
 
-void place(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_client_detach, ros::Publisher gripper_pub)
+void place(ros::Publisher gripper_pub)
 {
     // Inizializzo le variabili necessarie
     robot_model_loader::RobotModelLoaderPtr robot_model_loader(new robot_model_loader::RobotModelLoader("robot_description"));
@@ -1159,11 +1339,11 @@ void place(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_client
     // Apro il gripper e sgancio l'oggetto
     if (iscube)
     {
-        open_gripper(gripper_pub, demo_client_attach, "cubo_" + std::to_string(cube_local_index));
+        open_gripper(gripper_pub, "cubo_" + std::to_string(cube_local_index));
     }
     else
     {
-        open_gripper(gripper_pub, demo_client_attach, "parallelepipedo_" + std::to_string(parallelepiped_local_index));
+        open_gripper(gripper_pub, "parallelepipedo_" + std::to_string(parallelepiped_local_index));
     }
     ros::Duration(0.5).sleep();
 
@@ -1178,7 +1358,18 @@ void place(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_client
 
     block_collision.object.primitives.clear();
     block_collision.object.primitive_poses.clear();
-    block_collision.object.primitives.push_back(cube_primitive);
+
+    if (iscube)
+    {
+        block_collision.object.primitives.push_back(cube_primitive);
+    }
+    else
+    {
+        tf2::Quaternion parallelepiped_orientation(-0.7, 0.7, 0.0, 0.0);
+        local.orientation = tf2::toMsg(parallelepiped_orientation);
+        block_collision.object.primitives.push_back(parallelepiped_primitive);
+    }
+
     block_collision.object.primitive_poses.push_back(local);
     block_collision.object.operation = block_collision.object.ADD;
 
@@ -1227,12 +1418,9 @@ void place(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_client
  * @brief Funzione che esegue il movimento in sequenza del braccio, chiamando le apposite funzioni, per il posizionamento
  *        di default del manipolatore
  *
- * @param demo_client_attach client ROS utilizzato per riconnettere il robot dopo l'invio del messaggio al gripper (ambiente reale)
- *               oppure client ROS per l'apertura del gripper (ambiente simulato)
- * @param demo_client_detach client ROS utilizzato per la chiusura del gripper (ambiente simulato)
  */
 
-void reset(ros::ServiceClient demo_client_attach, ros::ServiceClient demo_client_detach)
+void reset()
 {
     // Breve controllo per vedere se passare o meno per il punto medio:
     // Se la posa corrente e la posa target sono opposte rispetto alla rotazione del robot
@@ -1275,7 +1463,7 @@ void confirmation_msgs(ros::Publisher confirmation_pub)
     std_msgs::String msg;
     std::stringstream ss;
 
-    ss << "SUCCESS";
+    ss << "NOT BUSY";
     msg.data = ss.str();
     std::cout << "Invio del messaggio di conferma nel topic 'confirmation_topic'" << std::endl;
     confirmation_pub.publish(msg);
@@ -1368,6 +1556,9 @@ int main(int argc, char **args)
     // Inizializzo i publisher di ROS per i messaggi al controller del gripper e per la conferma del movimento
     ros::Publisher gripper_pub = n.advertise<std_msgs::String>("gripper_controller_cmd", 10);
     ros::Publisher confirmation_pub = n.advertise<std_msgs::String>("confirmation_topic", 10);
+    ros::Subscriber pickup_pub = n.advertise<geometry_msgs::PoseStamped>("/points/pickup", 1);
+    ros::Subscriber stack_pub = n.advertise<geometry_msgs::PoseStamped>("/points/stack", 1);
+    ros::Subscriber place_pub = n.advertise<geometry_msgs::PoseStamped>("/points/place", 1);
 
     // Inizializzo i subscriber di ROS per leggere i messaggi dai nodi esterni
     ros::Subscriber sub = n.subscribe("/custom_msg", 1, buffer_callback);
@@ -1378,16 +1569,15 @@ int main(int argc, char **args)
     spinner.start();
     setup();
 
-    ros::ServiceClient attach_srv, detach_srv, client;
-
     if (SIMULATION)
     {
         attach_srv = n.serviceClient<gazebo_ros_link_attacher::Attach>("/link_attacher_node/attach");
         detach_srv = n.serviceClient<gazebo_ros_link_attacher::Attach>("/link_attacher_node/detach");
+        spawn_model = n.serviceClient<gazebo_msgs::SpawnModel>("/gazebo/spawn_sdf_model");
 
         // Eseguo il planning alla posizione iniziale del braccio (usato solo per Gazebo)
-        arm_group->setJointValueTarget(arm_group->getNamedTargetValues("home"));
-        arm_group->move();
+        // arm_group->setJointValueTarget(arm_group->getNamedTargetValues("home"));
+        // arm_group->move();
     }
     else
     {
@@ -1412,18 +1602,18 @@ int main(int argc, char **args)
             if (SIMULATION)
             {
                 // In ambiente simulato ho bisogno di tutti e 4 i parametri per il gripping virtuale degli oggetti
-                pickup(attach_srv, detach_srv, gripper_pub);
-                place(attach_srv, detach_srv, gripper_pub);
-                reset(attach_srv, detach_srv);
+                pickup(gripper_pub);
+                place(gripper_pub);
+                reset();
                 std::cout << "Movimento terminato correttamente" << std::endl
                           << std::endl;
             }
             else
             {
                 // In ambiente reale il secondo parametro non viene usato
-                pickup(client, detach_srv, gripper_pub);
-                place(client, detach_srv, gripper_pub);
-                reset(client, detach_srv);
+                pickup(gripper_pub);
+                place(gripper_pub);
+                reset();
                 std::cout << "Movimento terminato correttamente" << std::endl
                           << std::endl;
             }
@@ -1437,7 +1627,7 @@ int main(int argc, char **args)
             if (SIMULATION)
             {
                 // In ambiente simulato ho bisogno di tutti e 4 i parametri per il gripping virtuale degli oggetti
-                pickup(attach_srv, detach_srv, gripper_pub);
+                pickup(gripper_pub);
 
                 // Invio il messaggio di conferma del movimento
                 confirmation_msgs(confirmation_pub);
@@ -1445,7 +1635,7 @@ int main(int argc, char **args)
             else
             {
                 // In ambiente reale il secondo parametro non viene usato
-                pickup(client, detach_srv, gripper_pub);
+                pickup(gripper_pub);
 
                 // Invio il messaggio di conferma del movimento
                 confirmation_msgs(confirmation_pub);
@@ -1460,8 +1650,8 @@ int main(int argc, char **args)
             if (SIMULATION)
             {
                 // In ambiente simulato ho bisogno di tutti e 4 i parametri per il gripping virtuale degli oggetti
-                place(attach_srv, detach_srv, gripper_pub);
-                reset(attach_srv, detach_srv);
+                place(gripper_pub);
+                reset();
 
                 // Invio il messaggio di conferma del movimento
                 confirmation_msgs(confirmation_pub);
@@ -1471,8 +1661,8 @@ int main(int argc, char **args)
             else
             {
                 // In ambiente reale il secondo parametro non viene usato
-                place(client, detach_srv, gripper_pub);
-                reset(client, detach_srv);
+                place(gripper_pub);
+                reset();
 
                 // Invio il messaggio di conferma del movimento
                 confirmation_msgs(confirmation_pub);
@@ -1489,8 +1679,8 @@ int main(int argc, char **args)
             if (SIMULATION)
             {
                 // In ambiente simulato ho bisogno di tutti e 4 i parametri per il gripping virtuale degli oggetti
-                place(attach_srv, detach_srv, gripper_pub);
-                reset(attach_srv, detach_srv);
+                place(gripper_pub);
+                reset();
 
                 // Invio il messaggio di conferma del movimento
                 confirmation_msgs(confirmation_pub);
@@ -1500,8 +1690,8 @@ int main(int argc, char **args)
             else
             {
                 // In ambiente reale il secondo parametro non viene usato
-                place(client, detach_srv, gripper_pub);
-                reset(client, detach_srv);
+                place(gripper_pub);
+                reset();
 
                 // Invio il messaggio di conferma del movimento
                 confirmation_msgs(confirmation_pub);
