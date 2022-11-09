@@ -8,6 +8,10 @@ Lo scopo di questo progetto è posizionare dei blocchi da costruzione, dati in o
 
 Il robot utilizzato è un UR5e con un gripper a 2 dita azionato ad aria compressa, la struttura di supporto del robot è mappata sul tavolo di lavoro presente in laboratorio.
 
+### Video
+
+[![Demo Costruzione Gazebo](https://user-images.githubusercontent.com/89746496/200953324-7f3220e2-f50d-412e-9f93-33a03dd09014.jpg)](https://youtu.be/9SK5fYOJhfQ)
+
 ### Struttura del progetto
 
 I pacchetti da cui dipende la repository sono:
