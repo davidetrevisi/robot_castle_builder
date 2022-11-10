@@ -48,7 +48,7 @@
 
 #define Z_BASE_LINK 1.791
 #define Z_DESK 0.8675
-#define Z_MIN 1.02
+#define Z_MIN 1.025
 #define Z_INCREMENT 0.05
 
 #define BUFFER_CUBE_ROWS 2
@@ -276,54 +276,19 @@ void add_cube(geometry_msgs::Pose pose, int index)
     local.position.z = local.position.z - 0.12;
     model.request.initial_pose = local;
 
-    if (index <= 4)
-    {
-        // Leggo il file .sdf
-        std::ifstream file;
-        file.open("/home/davide/catkin_ws/src/UR5e_gripper/integration_package/models/cubo_giallo/model.sdf");
+    // Leggo il file .sdf
+    std::ifstream file;
+    file.open("/home/davide/catkin_ws/src/UR5e_gripper/integration_package/models/cubo_blu/model.sdf");
 
-        if (file)
-        {
-            std::ostringstream sstr;
-            sstr << file.rdbuf();
-            model.request.model_xml = sstr.str();
-        }
-        else
-        {
-            std::cout << "Errore nell'apertura del file" << std::endl;
-        }
-    }
-    else if (index <= 8)
+    if (file)
     {
-        std::ifstream file;
-        file.open("/home/davide/catkin_ws/src/UR5e_gripper/integration_package/models/cubo_rosso/model.sdf");
-
-        if (file)
-        {
-            std::ostringstream sstr;
-            sstr << file.rdbuf();
-            model.request.model_xml = sstr.str();
-        }
-        else
-        {
-            std::cout << "Errore nell'apertura del file" << std::endl;
-        }
+        std::ostringstream sstr;
+        sstr << file.rdbuf();
+        model.request.model_xml = sstr.str();
     }
     else
     {
-        std::ifstream file;
-        file.open("/home/davide/catkin_ws/src/UR5e_gripper/integration_package/models/cubo_blu/model.sdf");
-
-        if (file)
-        {
-            std::ostringstream sstr;
-            sstr << file.rdbuf();
-            model.request.model_xml = sstr.str();
-        }
-        else
-        {
-            std::cout << "Errore nell'apertura del file" << std::endl;
-        }
+        std::cout << "Errore nell'apertura del file" << std::endl;
     }
 
     model.request.model_name = "cubo_" + std::to_string(index);
@@ -351,7 +316,6 @@ void add_parallelepiped(geometry_msgs::Pose pose, int index)
     geometry_msgs::Pose local = pose;
 
     local.position.z = local.position.z - 0.12;
-
     model.request.initial_pose = local;
 
     // Leggo il file .sdf
@@ -1124,6 +1088,9 @@ void pickup(ros::Publisher gripper_pub)
     else if (TARGET_CASTLE_FLAG)
     {
         start = action_msg.pose;
+        tf2::Quaternion fixed(action_msg.pose.orientation.x, action_msg.pose.orientation.y, action_msg.pose.orientation.z, action_msg.pose.orientation.w);
+        fixed.normalize();
+        start.orientation = tf2::toMsg(fixed);
     }
 
     // Stampa di cortesia delle posizioni
@@ -1171,7 +1138,7 @@ void pickup(ros::Publisher gripper_pub)
         // Riga dei parallelepipedi: considero la variabile 'counter' minore del massimo dei blocchi,
         // perché la funzione sarebbe uscita in caso contrario. I cubi vengono prima dei
         // parallelepipedi.
-        if (buffer_counter > ((BUFFER_CUBE_ROWS * BUFFER_CUBE_PER_ROW) - 1))
+        if (local.position.x < 0.37)
         {
             parallelepiped_local_index = buffer_counter;
             block_collision.object.id = "parallelepiped_collision_" + std::to_string(parallelepiped_local_index);
@@ -1299,6 +1266,9 @@ void place(ros::Publisher gripper_pub)
     else if (TARGET_CASTLE_FLAG)
     {
         target = action_msg.pose;
+        tf2::Quaternion fixed(action_msg.pose.orientation.x, action_msg.pose.orientation.y, action_msg.pose.orientation.z, action_msg.pose.orientation.w);
+        fixed.normalize();
+        target.orientation = tf2::toMsg(fixed);
     }
 
     // Stampa di cortesia delle posizioni
@@ -1336,6 +1306,10 @@ void place(ros::Publisher gripper_pub)
     execute_Cartesian_Path(point);
     ros::Duration(0.5).sleep();
 
+    // Modifico le collisioni del blocco rimuovendolo dal gripper
+    block_collision.object.operation = block_collision.object.REMOVE;
+    planning_scene_interface->applyAttachedCollisionObject(block_collision);
+
     // Apro il gripper e sgancio l'oggetto
     if (iscube)
     {
@@ -1347,14 +1321,12 @@ void place(ros::Publisher gripper_pub)
     }
     ros::Duration(0.5).sleep();
 
-    // Modifico le collisioni del blocco, aggiungendolo all'ambiente e rimuovendolo dal gripper
-    block_collision.object.operation = block_collision.object.REMOVE;
-    planning_scene_interface->applyAttachedCollisionObject(block_collision);
+    // Modifico le collisioni del blocco aggiungendolo all'ambiente
 
     geometry_msgs::Pose local = point;
 
-    // 0.14 = 1.02 - [Z_DESK + (CUBE_MEASURE / 2.0)]
-    local.position.z = local.position.z - 0.14;
+    // 0.145 = Z_MIN - [Z_DESK + (CUBE_MEASURE / 2.0)]
+    local.position.z = local.position.z - 0.145;
 
     block_collision.object.primitives.clear();
     block_collision.object.primitive_poses.clear();
@@ -1365,8 +1337,6 @@ void place(ros::Publisher gripper_pub)
     }
     else
     {
-        tf2::Quaternion parallelepiped_orientation(-0.7, 0.7, 0.0, 0.0);
-        local.orientation = tf2::toMsg(parallelepiped_orientation);
         block_collision.object.primitives.push_back(parallelepiped_primitive);
     }
 
@@ -1556,9 +1526,9 @@ int main(int argc, char **args)
     // Inizializzo i publisher di ROS per i messaggi al controller del gripper e per la conferma del movimento
     ros::Publisher gripper_pub = n.advertise<std_msgs::String>("gripper_controller_cmd", 10);
     ros::Publisher confirmation_pub = n.advertise<std_msgs::String>("confirmation_topic", 10);
-    ros::Subscriber pickup_pub = n.advertise<geometry_msgs::PoseStamped>("/points/pickup", 1);
-    ros::Subscriber stack_pub = n.advertise<geometry_msgs::PoseStamped>("/points/stack", 1);
-    ros::Subscriber place_pub = n.advertise<geometry_msgs::PoseStamped>("/points/place", 1);
+    ros::Publisher pickup_pub = n.advertise<geometry_msgs::PoseStamped>("/points/pickup", 1);
+    ros::Publisher stack_pub = n.advertise<geometry_msgs::PoseStamped>("/points/stack", 1);
+    ros::Publisher place_pub = n.advertise<geometry_msgs::PoseStamped>("/points/place", 1);
 
     // Inizializzo i subscriber di ROS per leggere i messaggi dai nodi esterni
     ros::Subscriber sub = n.subscribe("/custom_msg", 1, buffer_callback);
@@ -1576,8 +1546,8 @@ int main(int argc, char **args)
         spawn_model = n.serviceClient<gazebo_msgs::SpawnModel>("/gazebo/spawn_sdf_model");
 
         // Eseguo il planning alla posizione iniziale del braccio (usato solo per Gazebo)
-        // arm_group->setJointValueTarget(arm_group->getNamedTargetValues("home"));
-        // arm_group->move();
+        arm_group->setJointValueTarget(arm_group->getNamedTargetValues("home"));
+        arm_group->move();
     }
     else
     {
