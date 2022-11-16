@@ -7,7 +7,7 @@
   <!-- Instantiate model for the REAL robot. -->
   <xacro:ur5e_robot
     prefix=""
-    kinematics_parameters_file:='$(find integration_package)/calibration_files/default_kinematics.yaml'/>
+    kinematics_parameters_file='$(find integration_package)/calibration_files/ex-ur5e_calibration.yaml'/>
 
   <!-- Robot gripper -->
 

@@ -77,7 +77,7 @@ roslaunch ur_calibration calibration_correction.launch robot_ip:=192.168.0.100 t
 Lancio il robot con i parametri corretti
 
 ```
-roslaunch ur_robot_driver ur5e_bringup.launch robot_ip:=192.168.0.100 kinematics_config:=$(rospack find integration_package)/calibration_files/ex-ur5e_calibration.yaml
+roslaunch ur_robot_driver ur5e_bringup.launch robot_ip:=192.168.0.100 kinematics_config:=$(rospack find integration_package)/calibration_files/ex-ur5e_calibration.yaml robot_description_file:=$(rospack find integration_package)/launch/load_ur5e_gripper.launch headless_mode:=true
 ```
 
 Lancio il pacchetto di integrazione con **MoveIt** per il robot
