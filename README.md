@@ -66,7 +66,7 @@ Lancio la demo del movimento del robot
 rosrun robot_commands demo
 ```
 
-### Ambiente reale (TESTING)
+### Ambiente reale
 
 Lancio la calibrazione del braccio (necessaria solo la prima volta)
 
