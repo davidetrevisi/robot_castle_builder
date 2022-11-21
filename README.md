@@ -12,6 +12,8 @@ Il robot utilizzato è un UR5e con un gripper a 2 dita azionato ad aria compress
 
 [![Demo Costruzione Gazebo](https://user-images.githubusercontent.com/89746496/200953324-7f3220e2-f50d-412e-9f93-33a03dd09014.jpg)](https://youtu.be/9SK5fYOJhfQ)
 
+https://user-images.githubusercontent.com/89746496/202859210-4fdf2a31-a90c-4ac1-a155-c9a835840753.mp4
+
 ### Struttura del progetto
 
 I pacchetti da cui dipende la repository sono:
@@ -66,7 +68,7 @@ Lancio la demo del movimento del robot
 rosrun robot_commands demo
 ```
 
-### Ambiente reale (TESTING)
+### Ambiente reale
 
 Lancio la calibrazione del braccio (necessaria solo la prima volta)
 
