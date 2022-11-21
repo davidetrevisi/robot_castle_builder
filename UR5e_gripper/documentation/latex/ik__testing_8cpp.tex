@@ -1,0 +1,232 @@
+\hypertarget{ik__testing_8cpp}{}\doxysection{robot\+\_\+commands/src/ik\+\_\+testing.cpp File Reference}
+\label{ik__testing_8cpp}\index{robot\_commands/src/ik\_testing.cpp@{robot\_commands/src/ik\_testing.cpp}}
+
+
+R\+OS Node che esegue il movimento del braccio da posizioni inserite da terminale.  
+
+
+{\ttfamily \#include $<$moveit/move\+\_\+group\+\_\+interface/move\+\_\+group\+\_\+interface.\+h$>$}\newline
+{\ttfamily \#include $<$moveit/planning\+\_\+scene\+\_\+interface/planning\+\_\+scene\+\_\+interface.\+h$>$}\newline
+{\ttfamily \#include $<$tf2\+\_\+geometry\+\_\+msgs/tf2\+\_\+geometry\+\_\+msgs.\+h$>$}\newline
+{\ttfamily \#include $<$tf2/\+Linear\+Math/\+Quaternion.\+h$>$}\newline
+{\ttfamily \#include $<$moveit\+\_\+msgs/\+Orientation\+Constraint.\+h$>$}\newline
+{\ttfamily \#include $<$moveit\+\_\+msgs/\+Joint\+Constraint.\+h$>$}\newline
+{\ttfamily \#include $<$moveit/trajectory\+\_\+processing/time\+\_\+optimal\+\_\+trajectory\+\_\+generation.\+h$>$}\newline
+{\ttfamily \#include $<$moveit/robot\+\_\+trajectory/robot\+\_\+trajectory.\+h$>$}\newline
+{\ttfamily \#include $<$ros/ros.\+h$>$}\newline
+{\ttfamily \#include $<$chrono$>$}\newline
+Include dependency graph for ik\+\_\+testing.\+cpp\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{ik__testing_8cpp__incl}
+\end{center}
+\end{figure}
+\doxysubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{ik__testing_8cpp_ad7c36b4b60469cd7ed9a16478d676f56}\label{ik__testing_8cpp_ad7c36b4b60469cd7ed9a16478d676f56}} 
+\#define {\bfseries M\+A\+X\+\_\+\+V\+E\+L\+O\+C\+I\+T\+Y\+\_\+\+S\+C\+A\+L\+I\+N\+G\+\_\+\+F\+A\+C\+T\+OR}~0.\+05
+\item 
+\mbox{\Hypertarget{ik__testing_8cpp_a9bd603c23177e9248affed872d662c44}\label{ik__testing_8cpp_a9bd603c23177e9248affed872d662c44}} 
+\#define {\bfseries M\+A\+X\+\_\+\+A\+C\+C\+E\+L\+L\+E\+R\+A\+T\+I\+O\+N\+\_\+\+S\+C\+A\+L\+I\+N\+G\+\_\+\+F\+A\+C\+T\+OR}~0.\+05
+\item 
+\mbox{\Hypertarget{ik__testing_8cpp_a87f8018a3653140d4dffb9c0fb4fcb6c}\label{ik__testing_8cpp_a87f8018a3653140d4dffb9c0fb4fcb6c}} 
+\#define {\bfseries Z\+\_\+\+B\+A\+S\+E\+\_\+\+L\+I\+NK}~1.\+791
+\item 
+\mbox{\Hypertarget{ik__testing_8cpp_a2ac4ae7eb81ec609c87d411c39e435dd}\label{ik__testing_8cpp_a2ac4ae7eb81ec609c87d411c39e435dd}} 
+\#define {\bfseries Z\+\_\+\+D\+E\+SK}~0.\+8675
+\item 
+\mbox{\Hypertarget{ik__testing_8cpp_aa8a93152646fa4880ebb582309c88295}\label{ik__testing_8cpp_aa8a93152646fa4880ebb582309c88295}} 
+\#define {\bfseries Z\+\_\+\+M\+IN}~1.\+02
+\item 
+\mbox{\Hypertarget{ik__testing_8cpp_aeec98a3999413a46267eafa17015d2b8}\label{ik__testing_8cpp_aeec98a3999413a46267eafa17015d2b8}} 
+\#define {\bfseries Z\+\_\+\+I\+N\+C\+R\+E\+M\+E\+NT}~0.\+05
+\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{ik__testing_8cpp_a4fc01d736fe50cf5b977f755b675f11d}{setup}} ()
+\begin{DoxyCompactList}\small\item\em Funzione che inizializza le variabili globali e i puntatori. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{ik__testing_8cpp_a0c40266d9f81945e7305b9f706067772}{robot\+\_\+constraints}} ()
+\begin{DoxyCompactList}\small\item\em Funzione che inizializza le costrizioni dei vari valori dei joint e orientazione dell\textquotesingle{}end-\/effector del braccio, valori testati in modo da limitare il braccio all\textquotesingle{}area di lavoro per favorire soluzioni \textquotesingle{}ottimali\textquotesingle{} dell\textquotesingle{}inverse kinematics. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{ik__testing_8cpp_ab3e12409508f78abe16f1741c18637fc}{execute\+\_\+\+Cartesian\+\_\+\+Path}} (geometry\+\_\+msgs\+::\+Pose target)
+\begin{DoxyCompactList}\small\item\em Funzione che esegue il planning ed il movimento del braccio linearmente verso una posa dell\textquotesingle{}end-\/effector passata come parametro. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{ik__testing_8cpp_a2f4f7edb241686aacb8145a9ba417e2d}{motion\+\_\+plan}} (geometry\+\_\+msgs\+::\+Pose target)
+\begin{DoxyCompactList}\small\item\em Funzione che esegue il planning ed il movimento del braccio verso una posa dell\textquotesingle{}end-\/effector passata come parametro. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{ik__testing_8cpp_aaad6bf04107d106688d681b97a334801}{motion\+\_\+plan\+\_\+middle}} (geometry\+\_\+msgs\+::\+Pose target)
+\begin{DoxyCompactList}\small\item\em Funzione che esegue il planning ed il movimento del braccio verso una posa dell\textquotesingle{}end-\/effector data come parametro, passando per un punto intermedio definito a priori come posa (nel file .srdf di Move\+It!). Il movimento è l\textquotesingle{}unione di due traiettorie pianificate separatamente e con il timing ricalcolato. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{ik__testing_8cpp_a7d6c18e17b9d822531a159010049d175}{select\+\_\+arm\+\_\+motion\+\_\+plan}} (geometry\+\_\+msgs\+::\+Pose target)
+\begin{DoxyCompactList}\small\item\em Funzione che sceglie se far passare il braccio per il punto medio oppure no. Il passaggio avviene supponendo di divirere il tavolo di lavoro in due metà rispetto all\textquotesingle{}origine del robot\+: se origine e destinazione si trovano sulla stessa metà allora non serve passare per il waypoint. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{ik__testing_8cpp_a792e44f027d5c332de077c7d367714ef}{rotate\+\_\+end\+\_\+effector}} (int joint\+\_\+number, double amount)
+\begin{DoxyCompactList}\small\item\em Funzione che assegna ad un determinato joint un valore passato come parametro (consultare il file U\+R\+DF del robot per maggiori informazioni, numerazione crescente) \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{ik__testing_8cpp_af90018806f0a695b001973a2597e5a73}{pick\+\_\+place\+\_\+simple}} (geometry\+\_\+msgs\+::\+Pose start, geometry\+\_\+msgs\+::\+Pose target)
+\begin{DoxyCompactList}\small\item\em Funzione che esegue il movimento in sequenza del braccio, chiamando le apposite funzioni, per il pick-\/place dei blocchi (senza collisioni) \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{ik__testing_8cpp_aebff3cd0e1f9809924e379778ad14100}\label{ik__testing_8cpp_aebff3cd0e1f9809924e379778ad14100}} 
+void {\bfseries test} (geometry\+\_\+msgs\+::\+Pose target)
+\item 
+\mbox{\Hypertarget{ik__testing_8cpp_a7a29781a20c5dd4153c3c1cecf0ff328}\label{ik__testing_8cpp_a7a29781a20c5dd4153c3c1cecf0ff328}} 
+int {\bfseries main} (int argc, char $\ast$$\ast$args)
+\end{DoxyCompactItemize}
+\doxysubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{ik__testing_8cpp_a8f87ff30c238757c76dcc8dc3dc0c85b}\label{ik__testing_8cpp_a8f87ff30c238757c76dcc8dc3dc0c85b}} 
+moveit\+::planning\+\_\+interface\+::\+Move\+Group\+Interface $\ast$ {\bfseries arm\+\_\+group}
+\item 
+\mbox{\Hypertarget{ik__testing_8cpp_a10ba50d04a0a6dc69353446908c510e4}\label{ik__testing_8cpp_a10ba50d04a0a6dc69353446908c510e4}} 
+moveit\+::planning\+\_\+interface\+::\+Move\+Group\+Interface\+::\+Plan $\ast$ {\bfseries arm\+\_\+motion\+\_\+plan}
+\item 
+\mbox{\Hypertarget{ik__testing_8cpp_ae497a4c6eb28491cfd532c684efd6b3c}\label{ik__testing_8cpp_ae497a4c6eb28491cfd532c684efd6b3c}} 
+moveit\+\_\+msgs\+::\+Constraints {\bfseries lab\+\_\+gripper}
+\item 
+\mbox{\Hypertarget{ik__testing_8cpp_af6fa81b152e7104ee0eafc0389e0b44c}\label{ik__testing_8cpp_af6fa81b152e7104ee0eafc0389e0b44c}} 
+moveit\+::core\+::\+Robot\+State\+Ptr {\bfseries current\+\_\+state}
+\item 
+\mbox{\Hypertarget{ik__testing_8cpp_adb080b0aee00f1d669017fb65cf1d23e}\label{ik__testing_8cpp_adb080b0aee00f1d669017fb65cf1d23e}} 
+std\+::vector$<$ double $>$ {\bfseries joint\+\_\+group\+\_\+positions}
+\item 
+\mbox{\Hypertarget{ik__testing_8cpp_a44bdf1df984dca3bd38419948a77ba42}\label{ik__testing_8cpp_a44bdf1df984dca3bd38419948a77ba42}} 
+const moveit\+::core\+::\+Joint\+Model\+Group $\ast$ {\bfseries joint\+\_\+model\+\_\+group}
+\item 
+\mbox{\Hypertarget{ik__testing_8cpp_a46369da9f4cf2d05b9f92ae8fa8ec634}\label{ik__testing_8cpp_a46369da9f4cf2d05b9f92ae8fa8ec634}} 
+trajectory\+\_\+processing\+::\+Time\+Optimal\+Trajectory\+Generation $\ast$ {\bfseries totg}
+\item 
+\mbox{\Hypertarget{ik__testing_8cpp_a5d091a6138ccf23563bb49693ba09edd}\label{ik__testing_8cpp_a5d091a6138ccf23563bb49693ba09edd}} 
+robot\+\_\+trajectory\+::\+Robot\+Trajectory $\ast$ {\bfseries robot\+\_\+traj}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+R\+OS Node che esegue il movimento del braccio da posizioni inserite da terminale. 
+
+\begin{DoxyAuthor}{Author}
+Davide Trevisi 
+\end{DoxyAuthor}
+\begin{DoxyVersion}{Version}
+0.\+2 
+\end{DoxyVersion}
+\begin{DoxyDate}{Date}
+2022-\/07-\/21
+\end{DoxyDate}
+\begin{DoxyCopyright}{Copyright}
+Copyright (c) 2022 
+\end{DoxyCopyright}
+
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{ik__testing_8cpp_ab3e12409508f78abe16f1741c18637fc}\label{ik__testing_8cpp_ab3e12409508f78abe16f1741c18637fc}} 
+\index{ik\_testing.cpp@{ik\_testing.cpp}!execute\_Cartesian\_Path@{execute\_Cartesian\_Path}}
+\index{execute\_Cartesian\_Path@{execute\_Cartesian\_Path}!ik\_testing.cpp@{ik\_testing.cpp}}
+\doxysubsubsection{\texorpdfstring{execute\_Cartesian\_Path()}{execute\_Cartesian\_Path()}}
+{\footnotesize\ttfamily void execute\+\_\+\+Cartesian\+\_\+\+Path (\begin{DoxyParamCaption}\item[{geometry\+\_\+msgs\+::\+Pose}]{target }\end{DoxyParamCaption})}
+
+
+
+Funzione che esegue il planning ed il movimento del braccio linearmente verso una posa dell\textquotesingle{}end-\/effector passata come parametro. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em target} & posa (X, Y, Z, x, y, z, w) che dovrà avere l\textquotesingle{}end-\/effector del braccio al termine del movimento \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{ik__testing_8cpp_a2f4f7edb241686aacb8145a9ba417e2d}\label{ik__testing_8cpp_a2f4f7edb241686aacb8145a9ba417e2d}} 
+\index{ik\_testing.cpp@{ik\_testing.cpp}!motion\_plan@{motion\_plan}}
+\index{motion\_plan@{motion\_plan}!ik\_testing.cpp@{ik\_testing.cpp}}
+\doxysubsubsection{\texorpdfstring{motion\_plan()}{motion\_plan()}}
+{\footnotesize\ttfamily void motion\+\_\+plan (\begin{DoxyParamCaption}\item[{geometry\+\_\+msgs\+::\+Pose}]{target }\end{DoxyParamCaption})}
+
+
+
+Funzione che esegue il planning ed il movimento del braccio verso una posa dell\textquotesingle{}end-\/effector passata come parametro. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em target} & posa (X, Y, Z, x, y, z, w) che dovrà avere l\textquotesingle{}end-\/effector del braccio al termine del movimento \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{ik__testing_8cpp_aaad6bf04107d106688d681b97a334801}\label{ik__testing_8cpp_aaad6bf04107d106688d681b97a334801}} 
+\index{ik\_testing.cpp@{ik\_testing.cpp}!motion\_plan\_middle@{motion\_plan\_middle}}
+\index{motion\_plan\_middle@{motion\_plan\_middle}!ik\_testing.cpp@{ik\_testing.cpp}}
+\doxysubsubsection{\texorpdfstring{motion\_plan\_middle()}{motion\_plan\_middle()}}
+{\footnotesize\ttfamily void motion\+\_\+plan\+\_\+middle (\begin{DoxyParamCaption}\item[{geometry\+\_\+msgs\+::\+Pose}]{target }\end{DoxyParamCaption})}
+
+
+
+Funzione che esegue il planning ed il movimento del braccio verso una posa dell\textquotesingle{}end-\/effector data come parametro, passando per un punto intermedio definito a priori come posa (nel file .srdf di Move\+It!). Il movimento è l\textquotesingle{}unione di due traiettorie pianificate separatamente e con il timing ricalcolato. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em target} & posa (X, Y, Z, x, y, z, w) che dovrà avere l\textquotesingle{}end-\/effector del braccio al termine del movimento \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{ik__testing_8cpp_af90018806f0a695b001973a2597e5a73}\label{ik__testing_8cpp_af90018806f0a695b001973a2597e5a73}} 
+\index{ik\_testing.cpp@{ik\_testing.cpp}!pick\_place\_simple@{pick\_place\_simple}}
+\index{pick\_place\_simple@{pick\_place\_simple}!ik\_testing.cpp@{ik\_testing.cpp}}
+\doxysubsubsection{\texorpdfstring{pick\_place\_simple()}{pick\_place\_simple()}}
+{\footnotesize\ttfamily void pick\+\_\+place\+\_\+simple (\begin{DoxyParamCaption}\item[{geometry\+\_\+msgs\+::\+Pose}]{start,  }\item[{geometry\+\_\+msgs\+::\+Pose}]{target }\end{DoxyParamCaption})}
+
+
+
+Funzione che esegue il movimento in sequenza del braccio, chiamando le apposite funzioni, per il pick-\/place dei blocchi (senza collisioni) 
+
+
+\begin{DoxyParams}{Parameters}
+{\em start} & posa (X, Y, Z, x, y, z, w) del blocco da prendere (solo x,y e rotazione usati) \\
+\hline
+{\em target} & posa (X, Y, Z, x, y, z, w) in cui rilasciare il blocco (solo x,y e rotazione usati) \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{ik__testing_8cpp_a0c40266d9f81945e7305b9f706067772}\label{ik__testing_8cpp_a0c40266d9f81945e7305b9f706067772}} 
+\index{ik\_testing.cpp@{ik\_testing.cpp}!robot\_constraints@{robot\_constraints}}
+\index{robot\_constraints@{robot\_constraints}!ik\_testing.cpp@{ik\_testing.cpp}}
+\doxysubsubsection{\texorpdfstring{robot\_constraints()}{robot\_constraints()}}
+{\footnotesize\ttfamily void robot\+\_\+constraints (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Funzione che inizializza le costrizioni dei vari valori dei joint e orientazione dell\textquotesingle{}end-\/effector del braccio, valori testati in modo da limitare il braccio all\textquotesingle{}area di lavoro per favorire soluzioni \textquotesingle{}ottimali\textquotesingle{} dell\textquotesingle{}inverse kinematics. 
+
+\mbox{\Hypertarget{ik__testing_8cpp_a792e44f027d5c332de077c7d367714ef}\label{ik__testing_8cpp_a792e44f027d5c332de077c7d367714ef}} 
+\index{ik\_testing.cpp@{ik\_testing.cpp}!rotate\_end\_effector@{rotate\_end\_effector}}
+\index{rotate\_end\_effector@{rotate\_end\_effector}!ik\_testing.cpp@{ik\_testing.cpp}}
+\doxysubsubsection{\texorpdfstring{rotate\_end\_effector()}{rotate\_end\_effector()}}
+{\footnotesize\ttfamily void rotate\+\_\+end\+\_\+effector (\begin{DoxyParamCaption}\item[{int}]{joint\+\_\+number,  }\item[{double}]{amount }\end{DoxyParamCaption})}
+
+
+
+Funzione che assegna ad un determinato joint un valore passato come parametro (consultare il file U\+R\+DF del robot per maggiori informazioni, numerazione crescente) 
+
+
+\begin{DoxyParams}{Parameters}
+{\em joint\+\_\+number} & il numero del joint del robot su cui agire \\
+\hline
+{\em amount} & angolo che avrà {\itshape joint\+\_\+number} dopo il movimento \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{ik__testing_8cpp_a7d6c18e17b9d822531a159010049d175}\label{ik__testing_8cpp_a7d6c18e17b9d822531a159010049d175}} 
+\index{ik\_testing.cpp@{ik\_testing.cpp}!select\_arm\_motion\_plan@{select\_arm\_motion\_plan}}
+\index{select\_arm\_motion\_plan@{select\_arm\_motion\_plan}!ik\_testing.cpp@{ik\_testing.cpp}}
+\doxysubsubsection{\texorpdfstring{select\_arm\_motion\_plan()}{select\_arm\_motion\_plan()}}
+{\footnotesize\ttfamily void select\+\_\+arm\+\_\+motion\+\_\+plan (\begin{DoxyParamCaption}\item[{geometry\+\_\+msgs\+::\+Pose}]{target }\end{DoxyParamCaption})}
+
+
+
+Funzione che sceglie se far passare il braccio per il punto medio oppure no. Il passaggio avviene supponendo di divirere il tavolo di lavoro in due metà rispetto all\textquotesingle{}origine del robot\+: se origine e destinazione si trovano sulla stessa metà allora non serve passare per il waypoint. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em target} & posa (X, Y, Z, x, y, z, w) che dovrà avere l\textquotesingle{}end-\/effector del braccio al termine del movimento \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{ik__testing_8cpp_a4fc01d736fe50cf5b977f755b675f11d}\label{ik__testing_8cpp_a4fc01d736fe50cf5b977f755b675f11d}} 
+\index{ik\_testing.cpp@{ik\_testing.cpp}!setup@{setup}}
+\index{setup@{setup}!ik\_testing.cpp@{ik\_testing.cpp}}
+\doxysubsubsection{\texorpdfstring{setup()}{setup()}}
+{\footnotesize\ttfamily void setup (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Funzione che inizializza le variabili globali e i puntatori. 
+

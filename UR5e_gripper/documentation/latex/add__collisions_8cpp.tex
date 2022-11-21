@@ -1,0 +1,112 @@
+\hypertarget{add__collisions_8cpp}{}\doxysection{robot\+\_\+commands/src/add\+\_\+collisions.cpp File Reference}
+\label{add__collisions_8cpp}\index{robot\_commands/src/add\_collisions.cpp@{robot\_commands/src/add\_collisions.cpp}}
+
+
+R\+OS Node che aggiunge le collisioni del workspace del robot all\textquotesingle{}ambiente Move\+It!  
+
+
+{\ttfamily \#include $<$moveit/move\+\_\+group\+\_\+interface/move\+\_\+group\+\_\+interface.\+h$>$}\newline
+{\ttfamily \#include $<$moveit/planning\+\_\+scene\+\_\+interface/planning\+\_\+scene\+\_\+interface.\+h$>$}\newline
+{\ttfamily \#include $<$tf2\+\_\+geometry\+\_\+msgs/tf2\+\_\+geometry\+\_\+msgs.\+h$>$}\newline
+{\ttfamily \#include $<$moveit\+\_\+msgs/\+Collision\+Object.\+h$>$}\newline
+{\ttfamily \#include $<$ros/ros.\+h$>$}\newline
+{\ttfamily \#include $<$signal.\+h$>$}\newline
+Include dependency graph for add\+\_\+collisions.\+cpp\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{add__collisions_8cpp__incl}
+\end{center}
+\end{figure}
+\doxysubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{add__collisions_8cpp_a87f8018a3653140d4dffb9c0fb4fcb6c}\label{add__collisions_8cpp_a87f8018a3653140d4dffb9c0fb4fcb6c}} 
+\#define {\bfseries Z\+\_\+\+B\+A\+S\+E\+\_\+\+L\+I\+NK}~1.\+791
+\item 
+\mbox{\Hypertarget{add__collisions_8cpp_a2ac4ae7eb81ec609c87d411c39e435dd}\label{add__collisions_8cpp_a2ac4ae7eb81ec609c87d411c39e435dd}} 
+\#define {\bfseries Z\+\_\+\+D\+E\+SK}~0.\+8675
+\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{add__collisions_8cpp_a45f813cd313677f0862561dd074db02a}{add\+Collisions}} ()
+\begin{DoxyCompactList}\small\item\em Funzione che inizializza e carica le collisioni nella scena Move\+It! \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{add__collisions_8cpp_ab3b2ee5dbf47d7ba57716e68e1c3eb28}{remove\+Collision}} (int sig)
+\begin{DoxyCompactList}\small\item\em Funzione che rimuove le collisioni dalla scena Move\+It! \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{add__collisions_8cpp_a7a29781a20c5dd4153c3c1cecf0ff328}\label{add__collisions_8cpp_a7a29781a20c5dd4153c3c1cecf0ff328}} 
+int {\bfseries main} (int argc, char $\ast$$\ast$args)
+\end{DoxyCompactItemize}
+\doxysubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{add__collisions_8cpp_a8f87ff30c238757c76dcc8dc3dc0c85b}\label{add__collisions_8cpp_a8f87ff30c238757c76dcc8dc3dc0c85b}} 
+moveit\+::planning\+\_\+interface\+::\+Move\+Group\+Interface $\ast$ {\bfseries arm\+\_\+group}
+\item 
+\mbox{\Hypertarget{add__collisions_8cpp_ad24eadc8a511670e7b52193da87cafd8}\label{add__collisions_8cpp_ad24eadc8a511670e7b52193da87cafd8}} 
+moveit\+::planning\+\_\+interface\+::\+Planning\+Scene\+Interface $\ast$ {\bfseries planning\+\_\+scene\+\_\+interface}
+\item 
+\mbox{\Hypertarget{add__collisions_8cpp_a92e8e13ad1a9e25cdefed868da33c28d}\label{add__collisions_8cpp_a92e8e13ad1a9e25cdefed868da33c28d}} 
+moveit\+\_\+msgs\+::\+Collision\+Object $\ast$ {\bfseries desk}
+\item 
+\mbox{\Hypertarget{add__collisions_8cpp_a12efbe254cc25270dbd44e7e55518c8b}\label{add__collisions_8cpp_a12efbe254cc25270dbd44e7e55518c8b}} 
+moveit\+\_\+msgs\+::\+Collision\+Object $\ast$ {\bfseries electric\+\_\+panel}
+\item 
+\mbox{\Hypertarget{add__collisions_8cpp_a3e229ecf1617cace75eae7c5dd3b1574}\label{add__collisions_8cpp_a3e229ecf1617cace75eae7c5dd3b1574}} 
+moveit\+\_\+msgs\+::\+Collision\+Object $\ast$ {\bfseries wall}
+\item 
+\mbox{\Hypertarget{add__collisions_8cpp_ae7418885bcd45e50491401df3c96b21b}\label{add__collisions_8cpp_ae7418885bcd45e50491401df3c96b21b}} 
+moveit\+\_\+msgs\+::\+Collision\+Object $\ast$ {\bfseries front\+\_\+wall}
+\item 
+\mbox{\Hypertarget{add__collisions_8cpp_a53e55d931afd7f1b2931fb9dd5205e3d}\label{add__collisions_8cpp_a53e55d931afd7f1b2931fb9dd5205e3d}} 
+moveit\+\_\+msgs\+::\+Collision\+Object $\ast$ {\bfseries top\+\_\+plate}
+\item 
+\mbox{\Hypertarget{add__collisions_8cpp_ab464cb73fa23a5b68a8eb4f3e0ddf21c}\label{add__collisions_8cpp_ab464cb73fa23a5b68a8eb4f3e0ddf21c}} 
+moveit\+\_\+msgs\+::\+Collision\+Object $\ast$ {\bfseries plug}
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+R\+OS Node che aggiunge le collisioni del workspace del robot all\textquotesingle{}ambiente Move\+It! 
+
+\begin{DoxyAuthor}{Author}
+Davide Trevisi 
+\end{DoxyAuthor}
+\begin{DoxyVersion}{Version}
+1 
+\end{DoxyVersion}
+\begin{DoxyDate}{Date}
+2022-\/07-\/21
+\end{DoxyDate}
+\begin{DoxyCopyright}{Copyright}
+Copyright (c) 2022 
+\end{DoxyCopyright}
+
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{add__collisions_8cpp_a45f813cd313677f0862561dd074db02a}\label{add__collisions_8cpp_a45f813cd313677f0862561dd074db02a}} 
+\index{add\_collisions.cpp@{add\_collisions.cpp}!addCollisions@{addCollisions}}
+\index{addCollisions@{addCollisions}!add\_collisions.cpp@{add\_collisions.cpp}}
+\doxysubsubsection{\texorpdfstring{addCollisions()}{addCollisions()}}
+{\footnotesize\ttfamily void add\+Collisions (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Funzione che inizializza e carica le collisioni nella scena Move\+It! 
+
+\mbox{\Hypertarget{add__collisions_8cpp_ab3b2ee5dbf47d7ba57716e68e1c3eb28}\label{add__collisions_8cpp_ab3b2ee5dbf47d7ba57716e68e1c3eb28}} 
+\index{add\_collisions.cpp@{add\_collisions.cpp}!removeCollision@{removeCollision}}
+\index{removeCollision@{removeCollision}!add\_collisions.cpp@{add\_collisions.cpp}}
+\doxysubsubsection{\texorpdfstring{removeCollision()}{removeCollision()}}
+{\footnotesize\ttfamily void remove\+Collision (\begin{DoxyParamCaption}\item[{int}]{sig }\end{DoxyParamCaption})}
+
+
+
+Funzione che rimuove le collisioni dalla scena Move\+It! 
+
+
+\begin{DoxyParams}{Parameters}
+{\em sig} & numero del segnale \\
+\hline
+\end{DoxyParams}

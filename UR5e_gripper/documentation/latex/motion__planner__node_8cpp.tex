@@ -1,0 +1,636 @@
+\hypertarget{motion__planner__node_8cpp}{}\doxysection{robot\+\_\+commands/src/motion\+\_\+planner\+\_\+node.cpp File Reference}
+\label{motion__planner__node_8cpp}\index{robot\_commands/src/motion\_planner\_node.cpp@{robot\_commands/src/motion\_planner\_node.cpp}}
+
+
+R\+OS Node che esegue il movimento completo del braccio completo leggendo i valori dai messaggi dei topic specifici.  
+
+
+{\ttfamily \#include $<$moveit/move\+\_\+group\+\_\+interface/move\+\_\+group\+\_\+interface.\+h$>$}\newline
+{\ttfamily \#include $<$moveit/planning\+\_\+scene\+\_\+interface/planning\+\_\+scene\+\_\+interface.\+h$>$}\newline
+{\ttfamily \#include $<$moveit/planning\+\_\+scene\+\_\+monitor/planning\+\_\+scene\+\_\+monitor.\+h$>$}\newline
+{\ttfamily \#include $<$tf2\+\_\+geometry\+\_\+msgs/tf2\+\_\+geometry\+\_\+msgs.\+h$>$}\newline
+{\ttfamily \#include $<$tf2/\+Linear\+Math/\+Quaternion.\+h$>$}\newline
+{\ttfamily \#include $<$moveit\+\_\+msgs/\+Orientation\+Constraint.\+h$>$}\newline
+{\ttfamily \#include $<$moveit\+\_\+msgs/\+Joint\+Constraint.\+h$>$}\newline
+{\ttfamily \#include $<$moveit\+\_\+msgs/\+Attached\+Collision\+Object.\+h$>$}\newline
+{\ttfamily \#include $<$gazebo\+\_\+msgs/\+Spawn\+Model.\+h$>$}\newline
+{\ttfamily \#include $<$gazebo\+\_\+ros\+\_\+link\+\_\+attacher/\+Attach.\+h$>$}\newline
+{\ttfamily \#include $<$gazebo\+\_\+ros\+\_\+link\+\_\+attacher/\+Attach\+Request.\+h$>$}\newline
+{\ttfamily \#include $<$gazebo\+\_\+ros\+\_\+link\+\_\+attacher/\+Attach\+Response.\+h$>$}\newline
+{\ttfamily \#include $<$moveit/trajectory\+\_\+processing/time\+\_\+optimal\+\_\+trajectory\+\_\+generation.\+h$>$}\newline
+{\ttfamily \#include $<$moveit/robot\+\_\+trajectory/robot\+\_\+trajectory.\+h$>$}\newline
+{\ttfamily \#include $<$std\+\_\+msgs/\+String.\+h$>$}\newline
+{\ttfamily \#include $<$std\+\_\+srvs/\+Trigger.\+h$>$}\newline
+{\ttfamily \#include $<$pcl\+\_\+action/custom.\+h$>$}\newline
+{\ttfamily \#include $<$ros/ros.\+h$>$}\newline
+{\ttfamily \#include $<$signal.\+h$>$}\newline
+{\ttfamily \#include $<$fstream$>$}\newline
+Include dependency graph for motion\+\_\+planner\+\_\+node.\+cpp\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{motion__planner__node_8cpp__incl}
+\end{center}
+\end{figure}
+\doxysubsection*{Macros}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_afd29c78cd36d8946cf1202e8e684f7a5}\label{motion__planner__node_8cpp_afd29c78cd36d8946cf1202e8e684f7a5}} 
+\#define {\bfseries S\+I\+M\+U\+L\+A\+T\+I\+ON}~false
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_ad7c36b4b60469cd7ed9a16478d676f56}\label{motion__planner__node_8cpp_ad7c36b4b60469cd7ed9a16478d676f56}} 
+\#define {\bfseries M\+A\+X\+\_\+\+V\+E\+L\+O\+C\+I\+T\+Y\+\_\+\+S\+C\+A\+L\+I\+N\+G\+\_\+\+F\+A\+C\+T\+OR}~0.\+55
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a9bd603c23177e9248affed872d662c44}\label{motion__planner__node_8cpp_a9bd603c23177e9248affed872d662c44}} 
+\#define {\bfseries M\+A\+X\+\_\+\+A\+C\+C\+E\+L\+L\+E\+R\+A\+T\+I\+O\+N\+\_\+\+S\+C\+A\+L\+I\+N\+G\+\_\+\+F\+A\+C\+T\+OR}~0.\+55
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a7ba9953c91bbb369d6cd128e3fba71df}\label{motion__planner__node_8cpp_a7ba9953c91bbb369d6cd128e3fba71df}} 
+\#define {\bfseries C\+A\+R\+T\+E\+S\+I\+A\+N\+\_\+\+M\+A\+X\+\_\+\+V\+E\+L\+O\+C\+I\+T\+Y\+\_\+\+S\+C\+A\+L\+I\+N\+G\+\_\+\+F\+A\+C\+T\+OR}~0.\+05
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_af5680b0ce3aa71f847e305ae06a440e1}\label{motion__planner__node_8cpp_af5680b0ce3aa71f847e305ae06a440e1}} 
+\#define {\bfseries C\+A\+R\+T\+E\+S\+I\+A\+N\+\_\+\+M\+A\+X\+\_\+\+A\+C\+C\+E\+L\+L\+E\+R\+A\+T\+I\+O\+N\+\_\+\+S\+C\+A\+L\+I\+N\+G\+\_\+\+F\+A\+C\+T\+OR}~0.\+05
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a87f8018a3653140d4dffb9c0fb4fcb6c}\label{motion__planner__node_8cpp_a87f8018a3653140d4dffb9c0fb4fcb6c}} 
+\#define {\bfseries Z\+\_\+\+B\+A\+S\+E\+\_\+\+L\+I\+NK}~1.\+791
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a2ac4ae7eb81ec609c87d411c39e435dd}\label{motion__planner__node_8cpp_a2ac4ae7eb81ec609c87d411c39e435dd}} 
+\#define {\bfseries Z\+\_\+\+D\+E\+SK}~0.\+8675
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_aa8a93152646fa4880ebb582309c88295}\label{motion__planner__node_8cpp_aa8a93152646fa4880ebb582309c88295}} 
+\#define {\bfseries Z\+\_\+\+M\+IN}~1.\+035
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_aeec98a3999413a46267eafa17015d2b8}\label{motion__planner__node_8cpp_aeec98a3999413a46267eafa17015d2b8}} 
+\#define {\bfseries Z\+\_\+\+I\+N\+C\+R\+E\+M\+E\+NT}~0.\+05
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a38be3fccf9291c6e12c1c158097410a2}\label{motion__planner__node_8cpp_a38be3fccf9291c6e12c1c158097410a2}} 
+\#define {\bfseries B\+U\+F\+F\+E\+R\+\_\+\+C\+U\+B\+E\+\_\+\+R\+O\+WS}~2
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a5dccfb12e57169d4b30e7185e6dbedb5}\label{motion__planner__node_8cpp_a5dccfb12e57169d4b30e7185e6dbedb5}} 
+\#define {\bfseries B\+U\+F\+F\+E\+R\+\_\+\+P\+A\+R\+A\+\_\+\+R\+O\+WS}~1
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a2a8fcc83dd8e235b09f62ea6e505750c}\label{motion__planner__node_8cpp_a2a8fcc83dd8e235b09f62ea6e505750c}} 
+\#define {\bfseries B\+U\+F\+F\+E\+R\+\_\+\+C\+U\+B\+E\+\_\+\+P\+E\+R\+\_\+\+R\+OW}~10
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a2288e4c6825be30aa4166e22d9d1f167}\label{motion__planner__node_8cpp_a2288e4c6825be30aa4166e22d9d1f167}} 
+\#define {\bfseries B\+U\+F\+F\+E\+R\+\_\+\+P\+A\+R\+A\+\_\+\+P\+E\+R\+\_\+\+R\+OW}~7
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a75783a188e5f11550cd57b19ef43730d}\label{motion__planner__node_8cpp_a75783a188e5f11550cd57b19ef43730d}} 
+\#define {\bfseries B\+U\+F\+F\+E\+R\+\_\+\+C\+U\+B\+E\+\_\+\+S\+P\+A\+CE}~0.\+045
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_aaf7df2009a00a0120cf64b67319193db}\label{motion__planner__node_8cpp_aaf7df2009a00a0120cf64b67319193db}} 
+\#define {\bfseries B\+U\+F\+F\+E\+R\+\_\+\+P\+A\+R\+A\+\_\+\+S\+P\+A\+CE}~0.\+07
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a298f4bbb7c64b0ba5ac02c4008fcefa0}\label{motion__planner__node_8cpp_a298f4bbb7c64b0ba5ac02c4008fcefa0}} 
+\#define {\bfseries B\+U\+F\+F\+E\+R\+\_\+\+R\+O\+W\+\_\+\+S\+P\+A\+CE}~0.\+08
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_af75bb2c9473dbb8bd29dcd0ed26e610f}\label{motion__planner__node_8cpp_af75bb2c9473dbb8bd29dcd0ed26e610f}} 
+\#define {\bfseries C\+U\+B\+E\+\_\+\+M\+E\+A\+S\+U\+RE}~0.\+025
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_acbfc030d65d23898b85a9b8c45c128e2}\label{motion__planner__node_8cpp_acbfc030d65d23898b85a9b8c45c128e2}} 
+\#define {\bfseries P\+A\+R\+A\+L\+L\+E\+L\+E\+P\+I\+P\+E\+D\+\_\+\+M\+E\+A\+S\+U\+RE}~0.\+05
+\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+void \mbox{\hyperlink{motion__planner__node_8cpp_a4fc01d736fe50cf5b977f755b675f11d}{setup}} ()
+\begin{DoxyCompactList}\small\item\em Funzone che inizializza le variabili globali e i puntatori. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{motion__planner__node_8cpp_a0c40266d9f81945e7305b9f706067772}{robot\+\_\+constraints}} ()
+\begin{DoxyCompactList}\small\item\em Funzione che inizializza le costrizioni dei vari valori dei joint e orientazione dell\textquotesingle{}end-\/effector del braccio, valori testati in modo da limitare il braccio all\textquotesingle{}area di lavoro per favorire soluzioni \textquotesingle{}ottimali\textquotesingle{} dell\textquotesingle{}inverse kinematics. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{motion__planner__node_8cpp_a4ab62f81b3f3a3625b4f73c19ceeff62}{add\+\_\+cube}} (geometry\+\_\+msgs\+::\+Pose pose, int index)
+\begin{DoxyCompactList}\small\item\em Funzione che aggiunge il cubo specificato a Gazebo. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{motion__planner__node_8cpp_a9a4cdd7ecb35c7c3a09042860e634b71}{add\+\_\+parallelepiped}} (geometry\+\_\+msgs\+::\+Pose pose, int index)
+\begin{DoxyCompactList}\small\item\em Funzione che aggiunge il parallelepipedo specificato a Gazebo. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{motion__planner__node_8cpp_a19e2f3befdda031eac3f973b147f6567}{add\+\_\+cube\+\_\+collision}} (geometry\+\_\+msgs\+::\+Pose pose, int index)
+\begin{DoxyCompactList}\small\item\em Funzione che aggiunge l\textquotesingle{}oggetto di collisione \textquotesingle{}cube\+\_\+collision\+\_\+ {\itshape index} \textquotesingle{} alla scena Move\+It! \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{motion__planner__node_8cpp_aa1c8604f264a12ae8c9eddafa32234f0}{add\+\_\+parallelepiped\+\_\+collision}} (geometry\+\_\+msgs\+::\+Pose pose, int index)
+\begin{DoxyCompactList}\small\item\em Funzione che aggiunge l\textquotesingle{}oggetto di collisione \textquotesingle{}parallelepiped\+\_\+collision\+\_\+ {\itshape index} \textquotesingle{} alla scena Move\+It! \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{motion__planner__node_8cpp_ab3b2ee5dbf47d7ba57716e68e1c3eb28}{remove\+Collision}} (int sig)
+\begin{DoxyCompactList}\small\item\em Funzione che rimuove le collisioni dalla scena Move\+It! \end{DoxyCompactList}\item 
+geometry\+\_\+msgs\+::\+Pose \mbox{\hyperlink{motion__planner__node_8cpp_a77c918a2f229ff3dd525a627351c35b4}{get\+\_\+buffer\+\_\+target}} (int counter)
+\begin{DoxyCompactList}\small\item\em Funzione che calcola la posa dell\textquotesingle{}end-\/effector per posizionare il blocco nel buffer tramite l\textquotesingle{}indice \textquotesingle{}counter\textquotesingle{}. La funzione calcola la posa in base alle costanti presenti e alle pose di default. \end{DoxyCompactList}\item 
+int \mbox{\hyperlink{motion__planner__node_8cpp_ad8b92b4fd213b7801012434961330419}{get\+\_\+index\+\_\+from\+\_\+buffer\+\_\+pose}} (geometry\+\_\+msgs\+::\+Pose target)
+\begin{DoxyCompactList}\small\item\em Funzione che trova l\textquotesingle{}indice tra le collisioni del blocco con la posa specificata e lo ritorna. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{motion__planner__node_8cpp_acaa2b60e07dd3330105db81b4db9b2b3}{open\+\_\+gripper}} (ros\+::\+Publisher pub, std\+::string model)
+\begin{DoxyCompactList}\small\item\em Funzione che esegue l\textquotesingle{}apertura del gripper in ambiente reale e simulato. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{motion__planner__node_8cpp_a3536311b9a73eafe4618611c0362d9a7}{close\+\_\+gripper}} (ros\+::\+Publisher pub, std\+::string model)
+\begin{DoxyCompactList}\small\item\em Funzione che esegue la chiusura del gripper in ambiente reale e simulato. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{motion__planner__node_8cpp_a2f4f7edb241686aacb8145a9ba417e2d}{motion\+\_\+plan}} (geometry\+\_\+msgs\+::\+Pose target)
+\begin{DoxyCompactList}\small\item\em Funzione che esegue il planning ed il movimento del braccio verso una posa dell\textquotesingle{}end-\/effector passata come parametro. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{motion__planner__node_8cpp_aaad6bf04107d106688d681b97a334801}{motion\+\_\+plan\+\_\+middle}} (geometry\+\_\+msgs\+::\+Pose target)
+\begin{DoxyCompactList}\small\item\em Funzione che esegue il planning ed il movimento del braccio verso una posa dell\textquotesingle{}end-\/effector data come parametro, passando per un punto intermedio definito a priori come posa (nel file .srdf di Move\+It!). Il movimento è l\textquotesingle{}unione di due traiettorie pianificate separatamente e con il timing ricalcolato. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{motion__planner__node_8cpp_ab3e12409508f78abe16f1741c18637fc}{execute\+\_\+\+Cartesian\+\_\+\+Path}} (geometry\+\_\+msgs\+::\+Pose target)
+\begin{DoxyCompactList}\small\item\em Funzione che esegue il planning ed il movimento del braccio linearmente verso una posa dell\textquotesingle{}end-\/effector passata come parametro. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{motion__planner__node_8cpp_a7d6c18e17b9d822531a159010049d175}{select\+\_\+arm\+\_\+motion\+\_\+plan}} (geometry\+\_\+msgs\+::\+Pose target)
+\begin{DoxyCompactList}\small\item\em Funzione che sceglie se far passare il braccio per il punto medio oppure no. Il passaggio avviene supponendo di divirere il tavolo di lavoro in due metà rispetto all\textquotesingle{}origine del robot\+: se origine e destinazione si trovano sulla stessa metà allora non serve passare per il waypoint. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{motion__planner__node_8cpp_a792e44f027d5c332de077c7d367714ef}{rotate\+\_\+end\+\_\+effector}} (int joint\+\_\+number, double amount)
+\begin{DoxyCompactList}\small\item\em Funzione che assegna ad un determinato joint un valore passato come parametro (consultare il file U\+R\+DF del robot per maggiori informazioni, numerazione crescente) \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{motion__planner__node_8cpp_af608bba0b50bde82e9edd251fda75662}{pickup}} (ros\+::\+Publisher gripper\+\_\+pub)
+\begin{DoxyCompactList}\small\item\em Funzione che esegue il movimento in sequenza del braccio, chiamando le apposite funzioni, per la presa dei blocchi (con collisioni) \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{motion__planner__node_8cpp_a3fb468c8404de768b7718baf3afffe7c}{place}} (ros\+::\+Publisher gripper\+\_\+pub)
+\begin{DoxyCompactList}\small\item\em Funzione che esegue il movimento in sequenza del braccio, chiamando le apposite funzioni, per il posizionamento dei blocchi (con collisioni) \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{motion__planner__node_8cpp_ad20897c5c8bd47f5d4005989bead0e55}{reset}} ()
+\begin{DoxyCompactList}\small\item\em Funzione che esegue il movimento in sequenza del braccio, chiamando le apposite funzioni, per il posizionamento di default del manipolatore. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{motion__planner__node_8cpp_a25f686a6191d7d83185c21872036fb79}{confirmation\+\_\+msgs}} (ros\+::\+Publisher confirmation\+\_\+pub)
+\begin{DoxyCompactList}\small\item\em Funzione che invia il messaggio di conferma del movimento al nodo del planning. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{motion__planner__node_8cpp_a859cd1bdea5bd730a7534e3a5c8cdbbc}{buffer\+\_\+callback}} (const pcl\+\_\+action\+::custom\+::\+Const\+Ptr \&msg)
+\begin{DoxyCompactList}\small\item\em Funzione callback chiamata dopo la ricezione del messaggio dal nodo della camera, inizializza la posa iniziale e il tipo di blocco in base ai valori del messaggio. In aggiunta setta la variabile flag \textquotesingle{}position\+\_\+flag\textquotesingle{} per segnalare al loop principale di eseguire il movimento. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{motion__planner__node_8cpp_ad72a0dd5b254704625684cba98acbfd5}{pickup\+\_\+callback}} (const geometry\+\_\+msgs\+::\+Pose\+Stamped\+Ptr \&msg)
+\begin{DoxyCompactList}\small\item\em Funzione callback chiamata dopo la ricezione del messaggio dal nodo del planning, inizializza la posa finale in base ai valori del messaggio. In aggiunta setta la variabile flag \textquotesingle{}pickup\+\_\+flag\textquotesingle{} per segnalare al loop principale di eseguire il movimento. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{motion__planner__node_8cpp_a58022b8f2c367ce7aadd52ee20ad7095}{stack\+\_\+callback}} (const geometry\+\_\+msgs\+::\+Pose\+Stamped\+Ptr \&msg)
+\begin{DoxyCompactList}\small\item\em Funzione callback chiamata dopo la ricezione del messaggio dal nodo del planning, inizializza la posa finale in base ai valori del messaggio. In aggiunta setta la variabile flag \textquotesingle{}stack\+\_\+flag\textquotesingle{} per segnalare al loop principale di eseguire il movimento. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{motion__planner__node_8cpp_a5710f4e95f3dbf7c91d89838745acc71}{place\+\_\+callback}} (const geometry\+\_\+msgs\+::\+Pose\+Stamped\+Ptr \&msg)
+\begin{DoxyCompactList}\small\item\em Funzione callback chiamata dopo la ricezione del messaggio dal nodo del planning, inizializza la posa finale in base ai valori del messaggio. In aggiunta setta la variabile flag \textquotesingle{}place\+\_\+flag\textquotesingle{} per segnalare al loop principale di eseguire il movimento. \end{DoxyCompactList}\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a7a29781a20c5dd4153c3c1cecf0ff328}\label{motion__planner__node_8cpp_a7a29781a20c5dd4153c3c1cecf0ff328}} 
+int {\bfseries main} (int argc, char $\ast$$\ast$args)
+\end{DoxyCompactItemize}
+\doxysubsection*{Variables}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a8f87ff30c238757c76dcc8dc3dc0c85b}\label{motion__planner__node_8cpp_a8f87ff30c238757c76dcc8dc3dc0c85b}} 
+moveit\+::planning\+\_\+interface\+::\+Move\+Group\+Interface $\ast$ {\bfseries arm\+\_\+group}
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a10ba50d04a0a6dc69353446908c510e4}\label{motion__planner__node_8cpp_a10ba50d04a0a6dc69353446908c510e4}} 
+moveit\+::planning\+\_\+interface\+::\+Move\+Group\+Interface\+::\+Plan $\ast$ {\bfseries arm\+\_\+motion\+\_\+plan}
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_ab27762e7dde7d3a157bbe5581d806c66}\label{motion__planner__node_8cpp_ab27762e7dde7d3a157bbe5581d806c66}} 
+moveit\+::planning\+\_\+interface\+::\+Move\+Group\+Interface $\ast$ {\bfseries gripper\+\_\+group}
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a476d6a68dde4335da6c09d64f46a06fc}\label{motion__planner__node_8cpp_a476d6a68dde4335da6c09d64f46a06fc}} 
+moveit\+::planning\+\_\+interface\+::\+Move\+Group\+Interface\+::\+Plan $\ast$ {\bfseries gripper\+\_\+motion\+\_\+plan}
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_ae497a4c6eb28491cfd532c684efd6b3c}\label{motion__planner__node_8cpp_ae497a4c6eb28491cfd532c684efd6b3c}} 
+moveit\+\_\+msgs\+::\+Constraints {\bfseries lab\+\_\+gripper}
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_ad24eadc8a511670e7b52193da87cafd8}\label{motion__planner__node_8cpp_ad24eadc8a511670e7b52193da87cafd8}} 
+moveit\+::planning\+\_\+interface\+::\+Planning\+Scene\+Interface $\ast$ {\bfseries planning\+\_\+scene\+\_\+interface}
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_ab1bec6f19927e1e5fa02b6300f4baca5}\label{motion__planner__node_8cpp_ab1bec6f19927e1e5fa02b6300f4baca5}} 
+shape\+\_\+msgs\+::\+Solid\+Primitive {\bfseries cube\+\_\+primitive}
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a447c7749d1e5b28472781f3d32ae456f}\label{motion__planner__node_8cpp_a447c7749d1e5b28472781f3d32ae456f}} 
+shape\+\_\+msgs\+::\+Solid\+Primitive {\bfseries parallelepiped\+\_\+primitive}
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a9f50881dedd675e08a2ace27c7a584b1}\label{motion__planner__node_8cpp_a9f50881dedd675e08a2ace27c7a584b1}} 
+moveit\+\_\+msgs\+::\+Attached\+Collision\+Object {\bfseries block\+\_\+collision}
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a10db94d9432e226e4b297441ac3e030a}\label{motion__planner__node_8cpp_a10db94d9432e226e4b297441ac3e030a}} 
+moveit\+\_\+msgs\+::\+Attached\+Collision\+Object {\bfseries detach\+\_\+object}
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_ad44530fd5be28a064fa50e6679c1b1f4}\label{motion__planner__node_8cpp_ad44530fd5be28a064fa50e6679c1b1f4}} 
+moveit\+\_\+msgs\+::\+Collision\+Object {\bfseries remove\+\_\+object}
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_af6fa81b152e7104ee0eafc0389e0b44c}\label{motion__planner__node_8cpp_af6fa81b152e7104ee0eafc0389e0b44c}} 
+moveit\+::core\+::\+Robot\+State\+Ptr {\bfseries current\+\_\+state}
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_adb080b0aee00f1d669017fb65cf1d23e}\label{motion__planner__node_8cpp_adb080b0aee00f1d669017fb65cf1d23e}} 
+std\+::vector$<$ double $>$ {\bfseries joint\+\_\+group\+\_\+positions}
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a44bdf1df984dca3bd38419948a77ba42}\label{motion__planner__node_8cpp_a44bdf1df984dca3bd38419948a77ba42}} 
+const moveit\+::core\+::\+Joint\+Model\+Group $\ast$ {\bfseries joint\+\_\+model\+\_\+group}
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a46369da9f4cf2d05b9f92ae8fa8ec634}\label{motion__planner__node_8cpp_a46369da9f4cf2d05b9f92ae8fa8ec634}} 
+trajectory\+\_\+processing\+::\+Time\+Optimal\+Trajectory\+Generation $\ast$ {\bfseries totg}
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a5d091a6138ccf23563bb49693ba09edd}\label{motion__planner__node_8cpp_a5d091a6138ccf23563bb49693ba09edd}} 
+robot\+\_\+trajectory\+::\+Robot\+Trajectory $\ast$ {\bfseries robot\+\_\+traj}
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a238082e8d4665aaff69939528db27b3b}\label{motion__planner__node_8cpp_a238082e8d4665aaff69939528db27b3b}} 
+int {\bfseries cube\+\_\+index} = 0
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a849952f2dc11118ded956e6b1514c211}\label{motion__planner__node_8cpp_a849952f2dc11118ded956e6b1514c211}} 
+int {\bfseries parallelepiped\+\_\+index} = 0
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a00697d7ae787e18f2405deda8e0eb480}\label{motion__planner__node_8cpp_a00697d7ae787e18f2405deda8e0eb480}} 
+int {\bfseries buffer\+\_\+counter} = 0
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a4bf3e4076ceacba9a7d0604fee0f8d61}\label{motion__planner__node_8cpp_a4bf3e4076ceacba9a7d0604fee0f8d61}} 
+std\+::array$<$ int,((B\+U\+F\+F\+E\+R\+\_\+\+P\+A\+R\+A\+\_\+\+R\+O\+WS $\ast$B\+U\+F\+F\+E\+R\+\_\+\+P\+A\+R\+A\+\_\+\+P\+E\+R\+\_\+\+R\+OW)+(B\+U\+F\+F\+E\+R\+\_\+\+C\+U\+B\+E\+\_\+\+R\+O\+WS $\ast$B\+U\+F\+F\+E\+R\+\_\+\+C\+U\+B\+E\+\_\+\+P\+E\+R\+\_\+\+R\+OW))$>$ {\bfseries buffer\+\_\+vector}
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_ae269af16610d7ee6cbb981aab5747313}\label{motion__planner__node_8cpp_ae269af16610d7ee6cbb981aab5747313}} 
+int {\bfseries cube\+\_\+local\+\_\+index} = 0
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a723f3bd7a1f2a99741d29383dc18c4ea}\label{motion__planner__node_8cpp_a723f3bd7a1f2a99741d29383dc18c4ea}} 
+int {\bfseries parallelepiped\+\_\+local\+\_\+index} = 0
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a9dea4caabbae81fdb7570855449ef802}\label{motion__planner__node_8cpp_a9dea4caabbae81fdb7570855449ef802}} 
+ros\+::\+Service\+Client {\bfseries attach\+\_\+srv}
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_abbf2a47ac525ec9f88d2b6b5a3f805c2}\label{motion__planner__node_8cpp_abbf2a47ac525ec9f88d2b6b5a3f805c2}} 
+ros\+::\+Service\+Client {\bfseries detach\+\_\+srv}
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a17bcd065930a8a7f9f194078d9977268}\label{motion__planner__node_8cpp_a17bcd065930a8a7f9f194078d9977268}} 
+ros\+::\+Service\+Client {\bfseries client}
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_ad6733c25cfb8525bc250e460d2ca3c18}\label{motion__planner__node_8cpp_ad6733c25cfb8525bc250e460d2ca3c18}} 
+ros\+::\+Service\+Client {\bfseries spawn\+\_\+model}
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a6dc56242f4b34b814103415920cd87ca}\label{motion__planner__node_8cpp_a6dc56242f4b34b814103415920cd87ca}} 
+bool {\bfseries T\+A\+R\+G\+E\+T\+\_\+\+B\+U\+F\+F\+E\+R\+\_\+\+F\+L\+AG} = false
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_ab116f4e9f37c7dc32f3bf8efb5a40ffc}\label{motion__planner__node_8cpp_ab116f4e9f37c7dc32f3bf8efb5a40ffc}} 
+bool {\bfseries T\+A\+R\+G\+E\+T\+\_\+\+C\+A\+S\+T\+L\+E\+\_\+\+F\+L\+AG} = false
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a5053965333118b1dcbf130f7ff6e8669}\label{motion__planner__node_8cpp_a5053965333118b1dcbf130f7ff6e8669}} 
+pcl\+\_\+action\+::custom {\bfseries pos\+\_\+msg}
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a56e2966f2c04dcc44270397716f45938}\label{motion__planner__node_8cpp_a56e2966f2c04dcc44270397716f45938}} 
+geometry\+\_\+msgs\+::\+Pose\+Stamped {\bfseries action\+\_\+msg}
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a1af6cc43a175d2f71becf931d329b5f9}\label{motion__planner__node_8cpp_a1af6cc43a175d2f71becf931d329b5f9}} 
+bool {\bfseries iscube} = false
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a7d57dd8066ff0f041190bc0d85591034}\label{motion__planner__node_8cpp_a7d57dd8066ff0f041190bc0d85591034}} 
+bool {\bfseries position\+\_\+flag} = false
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a9b0d13941d8ded70290b040f365fac49}\label{motion__planner__node_8cpp_a9b0d13941d8ded70290b040f365fac49}} 
+bool {\bfseries pickup\+\_\+flag} = false
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a9e95c9d4dbbcf7594d773caea234aa2a}\label{motion__planner__node_8cpp_a9e95c9d4dbbcf7594d773caea234aa2a}} 
+bool {\bfseries stack\+\_\+flag} = false
+\item 
+\mbox{\Hypertarget{motion__planner__node_8cpp_a4af29b85fe4abc417a88dc470ae57558}\label{motion__planner__node_8cpp_a4af29b85fe4abc417a88dc470ae57558}} 
+bool {\bfseries place\+\_\+flag} = false
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+R\+OS Node che esegue il movimento completo del braccio completo leggendo i valori dai messaggi dei topic specifici. 
+
+\begin{DoxyAuthor}{Author}
+Davide Trevisi 
+\end{DoxyAuthor}
+\begin{DoxyDate}{Date}
+2022-\/07-\/17
+\end{DoxyDate}
+\begin{DoxyCopyright}{Copyright}
+Copyright (c) 2022 
+\end{DoxyCopyright}
+
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{motion__planner__node_8cpp_a4ab62f81b3f3a3625b4f73c19ceeff62}\label{motion__planner__node_8cpp_a4ab62f81b3f3a3625b4f73c19ceeff62}} 
+\index{motion\_planner\_node.cpp@{motion\_planner\_node.cpp}!add\_cube@{add\_cube}}
+\index{add\_cube@{add\_cube}!motion\_planner\_node.cpp@{motion\_planner\_node.cpp}}
+\doxysubsubsection{\texorpdfstring{add\_cube()}{add\_cube()}}
+{\footnotesize\ttfamily void add\+\_\+cube (\begin{DoxyParamCaption}\item[{geometry\+\_\+msgs\+::\+Pose}]{pose,  }\item[{int}]{index }\end{DoxyParamCaption})}
+
+
+
+Funzione che aggiunge il cubo specificato a Gazebo. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em pose} & posa (X, Y, Z, x, y, z, w) dell\textquotesingle{}oggetto da aggiungere \\
+\hline
+{\em index} & indice dell\textquotesingle{}oggetto da aggiungere \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{motion__planner__node_8cpp_a19e2f3befdda031eac3f973b147f6567}\label{motion__planner__node_8cpp_a19e2f3befdda031eac3f973b147f6567}} 
+\index{motion\_planner\_node.cpp@{motion\_planner\_node.cpp}!add\_cube\_collision@{add\_cube\_collision}}
+\index{add\_cube\_collision@{add\_cube\_collision}!motion\_planner\_node.cpp@{motion\_planner\_node.cpp}}
+\doxysubsubsection{\texorpdfstring{add\_cube\_collision()}{add\_cube\_collision()}}
+{\footnotesize\ttfamily void add\+\_\+cube\+\_\+collision (\begin{DoxyParamCaption}\item[{geometry\+\_\+msgs\+::\+Pose}]{pose,  }\item[{int}]{index }\end{DoxyParamCaption})}
+
+
+
+Funzione che aggiunge l\textquotesingle{}oggetto di collisione \textquotesingle{}cube\+\_\+collision\+\_\+ {\itshape index} \textquotesingle{} alla scena Move\+It! 
+
+
+\begin{DoxyParams}{Parameters}
+{\em pose} & posa (X, Y, Z, x, y, z, w) dell\textquotesingle{}oggetto da aggiungere alle collisioni \\
+\hline
+{\em index} & indice dell\textquotesingle{}oggetto da aggiungere alle collisioni \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{motion__planner__node_8cpp_a9a4cdd7ecb35c7c3a09042860e634b71}\label{motion__planner__node_8cpp_a9a4cdd7ecb35c7c3a09042860e634b71}} 
+\index{motion\_planner\_node.cpp@{motion\_planner\_node.cpp}!add\_parallelepiped@{add\_parallelepiped}}
+\index{add\_parallelepiped@{add\_parallelepiped}!motion\_planner\_node.cpp@{motion\_planner\_node.cpp}}
+\doxysubsubsection{\texorpdfstring{add\_parallelepiped()}{add\_parallelepiped()}}
+{\footnotesize\ttfamily void add\+\_\+parallelepiped (\begin{DoxyParamCaption}\item[{geometry\+\_\+msgs\+::\+Pose}]{pose,  }\item[{int}]{index }\end{DoxyParamCaption})}
+
+
+
+Funzione che aggiunge il parallelepipedo specificato a Gazebo. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em pose} & posa (X, Y, Z, x, y, z, w) dell\textquotesingle{}oggetto da aggiungere \\
+\hline
+{\em index} & indice dell\textquotesingle{}oggetto da aggiungere \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{motion__planner__node_8cpp_aa1c8604f264a12ae8c9eddafa32234f0}\label{motion__planner__node_8cpp_aa1c8604f264a12ae8c9eddafa32234f0}} 
+\index{motion\_planner\_node.cpp@{motion\_planner\_node.cpp}!add\_parallelepiped\_collision@{add\_parallelepiped\_collision}}
+\index{add\_parallelepiped\_collision@{add\_parallelepiped\_collision}!motion\_planner\_node.cpp@{motion\_planner\_node.cpp}}
+\doxysubsubsection{\texorpdfstring{add\_parallelepiped\_collision()}{add\_parallelepiped\_collision()}}
+{\footnotesize\ttfamily void add\+\_\+parallelepiped\+\_\+collision (\begin{DoxyParamCaption}\item[{geometry\+\_\+msgs\+::\+Pose}]{pose,  }\item[{int}]{index }\end{DoxyParamCaption})}
+
+
+
+Funzione che aggiunge l\textquotesingle{}oggetto di collisione \textquotesingle{}parallelepiped\+\_\+collision\+\_\+ {\itshape index} \textquotesingle{} alla scena Move\+It! 
+
+
+\begin{DoxyParams}{Parameters}
+{\em pose} & posa (X, Y, Z, x, y, z, w) dell\textquotesingle{}oggetto da aggiungere alle collisioni \\
+\hline
+{\em index} & indice dell\textquotesingle{}oggetto da aggiungere alle collisioni \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{motion__planner__node_8cpp_a859cd1bdea5bd730a7534e3a5c8cdbbc}\label{motion__planner__node_8cpp_a859cd1bdea5bd730a7534e3a5c8cdbbc}} 
+\index{motion\_planner\_node.cpp@{motion\_planner\_node.cpp}!buffer\_callback@{buffer\_callback}}
+\index{buffer\_callback@{buffer\_callback}!motion\_planner\_node.cpp@{motion\_planner\_node.cpp}}
+\doxysubsubsection{\texorpdfstring{buffer\_callback()}{buffer\_callback()}}
+{\footnotesize\ttfamily void buffer\+\_\+callback (\begin{DoxyParamCaption}\item[{const pcl\+\_\+action\+::custom\+::\+Const\+Ptr \&}]{msg }\end{DoxyParamCaption})}
+
+
+
+Funzione callback chiamata dopo la ricezione del messaggio dal nodo della camera, inizializza la posa iniziale e il tipo di blocco in base ai valori del messaggio. In aggiunta setta la variabile flag \textquotesingle{}position\+\_\+flag\textquotesingle{} per segnalare al loop principale di eseguire il movimento. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em msg} & messaggio proveniente dal nodo \textquotesingle{}pcl\+\_\+action\textquotesingle{} \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{motion__planner__node_8cpp_a3536311b9a73eafe4618611c0362d9a7}\label{motion__planner__node_8cpp_a3536311b9a73eafe4618611c0362d9a7}} 
+\index{motion\_planner\_node.cpp@{motion\_planner\_node.cpp}!close\_gripper@{close\_gripper}}
+\index{close\_gripper@{close\_gripper}!motion\_planner\_node.cpp@{motion\_planner\_node.cpp}}
+\doxysubsubsection{\texorpdfstring{close\_gripper()}{close\_gripper()}}
+{\footnotesize\ttfamily void close\+\_\+gripper (\begin{DoxyParamCaption}\item[{ros\+::\+Publisher}]{pub,  }\item[{std\+::string}]{model }\end{DoxyParamCaption})}
+
+
+
+Funzione che esegue la chiusura del gripper in ambiente reale e simulato. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em pub} & publisher R\+OS utlilzzato per l\textquotesingle{}invio di messaggi nel topic \textquotesingle{}gripper\+\_\+controller\+\_\+cmd\textquotesingle{}. Usato solo in ambiente reale \\
+\hline
+{\em model} & nome del modello di Gazebo da prendere dopo l\textquotesingle{}apertura ( {\itshape cube-\/parallelepiped} , usato soltanto in Gazebo) \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{motion__planner__node_8cpp_a25f686a6191d7d83185c21872036fb79}\label{motion__planner__node_8cpp_a25f686a6191d7d83185c21872036fb79}} 
+\index{motion\_planner\_node.cpp@{motion\_planner\_node.cpp}!confirmation\_msgs@{confirmation\_msgs}}
+\index{confirmation\_msgs@{confirmation\_msgs}!motion\_planner\_node.cpp@{motion\_planner\_node.cpp}}
+\doxysubsubsection{\texorpdfstring{confirmation\_msgs()}{confirmation\_msgs()}}
+{\footnotesize\ttfamily void confirmation\+\_\+msgs (\begin{DoxyParamCaption}\item[{ros\+::\+Publisher}]{confirmation\+\_\+pub }\end{DoxyParamCaption})}
+
+
+
+Funzione che invia il messaggio di conferma del movimento al nodo del planning. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em confirmation\+\_\+pub} & publisher R\+OS utlilzzato per l\textquotesingle{}invio di messaggi nel topic \textquotesingle{}confirmation\+\_\+topic\textquotesingle{} \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{motion__planner__node_8cpp_ab3e12409508f78abe16f1741c18637fc}\label{motion__planner__node_8cpp_ab3e12409508f78abe16f1741c18637fc}} 
+\index{motion\_planner\_node.cpp@{motion\_planner\_node.cpp}!execute\_Cartesian\_Path@{execute\_Cartesian\_Path}}
+\index{execute\_Cartesian\_Path@{execute\_Cartesian\_Path}!motion\_planner\_node.cpp@{motion\_planner\_node.cpp}}
+\doxysubsubsection{\texorpdfstring{execute\_Cartesian\_Path()}{execute\_Cartesian\_Path()}}
+{\footnotesize\ttfamily void execute\+\_\+\+Cartesian\+\_\+\+Path (\begin{DoxyParamCaption}\item[{geometry\+\_\+msgs\+::\+Pose}]{target }\end{DoxyParamCaption})}
+
+
+
+Funzione che esegue il planning ed il movimento del braccio linearmente verso una posa dell\textquotesingle{}end-\/effector passata come parametro. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em target} & posa (X, Y, Z, x, y, z, w) che dovrà avere l\textquotesingle{}end-\/effector del braccio al termine del movimento \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{motion__planner__node_8cpp_a77c918a2f229ff3dd525a627351c35b4}\label{motion__planner__node_8cpp_a77c918a2f229ff3dd525a627351c35b4}} 
+\index{motion\_planner\_node.cpp@{motion\_planner\_node.cpp}!get\_buffer\_target@{get\_buffer\_target}}
+\index{get\_buffer\_target@{get\_buffer\_target}!motion\_planner\_node.cpp@{motion\_planner\_node.cpp}}
+\doxysubsubsection{\texorpdfstring{get\_buffer\_target()}{get\_buffer\_target()}}
+{\footnotesize\ttfamily geometry\+\_\+msgs\+::\+Pose get\+\_\+buffer\+\_\+target (\begin{DoxyParamCaption}\item[{int}]{counter }\end{DoxyParamCaption})}
+
+
+
+Funzione che calcola la posa dell\textquotesingle{}end-\/effector per posizionare il blocco nel buffer tramite l\textquotesingle{}indice \textquotesingle{}counter\textquotesingle{}. La funzione calcola la posa in base alle costanti presenti e alle pose di default. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em counter} & variabile che tiene conto del numero dei blocchi inseriti (0, n-\/1)\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+posa target dell\textquotesingle{}end-\/effector per il posizionamento del blocco nel buffer, nulla in caso di buffer pieno 
+\end{DoxyReturn}
+\mbox{\Hypertarget{motion__planner__node_8cpp_ad8b92b4fd213b7801012434961330419}\label{motion__planner__node_8cpp_ad8b92b4fd213b7801012434961330419}} 
+\index{motion\_planner\_node.cpp@{motion\_planner\_node.cpp}!get\_index\_from\_buffer\_pose@{get\_index\_from\_buffer\_pose}}
+\index{get\_index\_from\_buffer\_pose@{get\_index\_from\_buffer\_pose}!motion\_planner\_node.cpp@{motion\_planner\_node.cpp}}
+\doxysubsubsection{\texorpdfstring{get\_index\_from\_buffer\_pose()}{get\_index\_from\_buffer\_pose()}}
+{\footnotesize\ttfamily int get\+\_\+index\+\_\+from\+\_\+buffer\+\_\+pose (\begin{DoxyParamCaption}\item[{geometry\+\_\+msgs\+::\+Pose}]{target }\end{DoxyParamCaption})}
+
+
+
+Funzione che trova l\textquotesingle{}indice tra le collisioni del blocco con la posa specificata e lo ritorna. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em target} & posa (X, Y, Z, x, y, z, w) dell\textquotesingle{}oggetto da trovare nelle collisioni\\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+int contenente l\textquotesingle{}indice della collision, -\/1 in caso di errore 
+\end{DoxyReturn}
+\mbox{\Hypertarget{motion__planner__node_8cpp_a2f4f7edb241686aacb8145a9ba417e2d}\label{motion__planner__node_8cpp_a2f4f7edb241686aacb8145a9ba417e2d}} 
+\index{motion\_planner\_node.cpp@{motion\_planner\_node.cpp}!motion\_plan@{motion\_plan}}
+\index{motion\_plan@{motion\_plan}!motion\_planner\_node.cpp@{motion\_planner\_node.cpp}}
+\doxysubsubsection{\texorpdfstring{motion\_plan()}{motion\_plan()}}
+{\footnotesize\ttfamily void motion\+\_\+plan (\begin{DoxyParamCaption}\item[{geometry\+\_\+msgs\+::\+Pose}]{target }\end{DoxyParamCaption})}
+
+
+
+Funzione che esegue il planning ed il movimento del braccio verso una posa dell\textquotesingle{}end-\/effector passata come parametro. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em target} & posa (X, Y, Z, x, y, z, w) che dovrà avere l\textquotesingle{}end-\/effector del braccio al termine del movimento \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{motion__planner__node_8cpp_aaad6bf04107d106688d681b97a334801}\label{motion__planner__node_8cpp_aaad6bf04107d106688d681b97a334801}} 
+\index{motion\_planner\_node.cpp@{motion\_planner\_node.cpp}!motion\_plan\_middle@{motion\_plan\_middle}}
+\index{motion\_plan\_middle@{motion\_plan\_middle}!motion\_planner\_node.cpp@{motion\_planner\_node.cpp}}
+\doxysubsubsection{\texorpdfstring{motion\_plan\_middle()}{motion\_plan\_middle()}}
+{\footnotesize\ttfamily void motion\+\_\+plan\+\_\+middle (\begin{DoxyParamCaption}\item[{geometry\+\_\+msgs\+::\+Pose}]{target }\end{DoxyParamCaption})}
+
+
+
+Funzione che esegue il planning ed il movimento del braccio verso una posa dell\textquotesingle{}end-\/effector data come parametro, passando per un punto intermedio definito a priori come posa (nel file .srdf di Move\+It!). Il movimento è l\textquotesingle{}unione di due traiettorie pianificate separatamente e con il timing ricalcolato. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em target} & posa (X, Y, Z, x, y, z, w) che dovrà avere l\textquotesingle{}end-\/effector del braccio al termine del movimento \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{motion__planner__node_8cpp_acaa2b60e07dd3330105db81b4db9b2b3}\label{motion__planner__node_8cpp_acaa2b60e07dd3330105db81b4db9b2b3}} 
+\index{motion\_planner\_node.cpp@{motion\_planner\_node.cpp}!open\_gripper@{open\_gripper}}
+\index{open\_gripper@{open\_gripper}!motion\_planner\_node.cpp@{motion\_planner\_node.cpp}}
+\doxysubsubsection{\texorpdfstring{open\_gripper()}{open\_gripper()}}
+{\footnotesize\ttfamily void open\+\_\+gripper (\begin{DoxyParamCaption}\item[{ros\+::\+Publisher}]{pub,  }\item[{std\+::string}]{model }\end{DoxyParamCaption})}
+
+
+
+Funzione che esegue l\textquotesingle{}apertura del gripper in ambiente reale e simulato. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em pub} & publisher R\+OS utlilzzato per l\textquotesingle{}invio di messaggi nel topic \textquotesingle{}gripper\+\_\+controller\+\_\+cmd\textquotesingle{}. Usato solo in ambiente reale \\
+\hline
+{\em model} & nome del modello di Gazebo da rilasciare dopo l\textquotesingle{}apertura ( {\itshape cube-\/parallelepiped} , usato soltanto in Gazebo) \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{motion__planner__node_8cpp_af608bba0b50bde82e9edd251fda75662}\label{motion__planner__node_8cpp_af608bba0b50bde82e9edd251fda75662}} 
+\index{motion\_planner\_node.cpp@{motion\_planner\_node.cpp}!pickup@{pickup}}
+\index{pickup@{pickup}!motion\_planner\_node.cpp@{motion\_planner\_node.cpp}}
+\doxysubsubsection{\texorpdfstring{pickup()}{pickup()}}
+{\footnotesize\ttfamily void pickup (\begin{DoxyParamCaption}\item[{ros\+::\+Publisher}]{gripper\+\_\+pub }\end{DoxyParamCaption})}
+
+
+
+Funzione che esegue il movimento in sequenza del braccio, chiamando le apposite funzioni, per la presa dei blocchi (con collisioni) 
+
+
+\begin{DoxyParams}{Parameters}
+{\em gripper\+\_\+pub} & publisher R\+OS utlilzzato per l\textquotesingle{}invio di messaggi nel topic \textquotesingle{}gripper\+\_\+controller\+\_\+cmd\textquotesingle{}. Usato solo in ambiente reale \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{motion__planner__node_8cpp_ad72a0dd5b254704625684cba98acbfd5}\label{motion__planner__node_8cpp_ad72a0dd5b254704625684cba98acbfd5}} 
+\index{motion\_planner\_node.cpp@{motion\_planner\_node.cpp}!pickup\_callback@{pickup\_callback}}
+\index{pickup\_callback@{pickup\_callback}!motion\_planner\_node.cpp@{motion\_planner\_node.cpp}}
+\doxysubsubsection{\texorpdfstring{pickup\_callback()}{pickup\_callback()}}
+{\footnotesize\ttfamily void pickup\+\_\+callback (\begin{DoxyParamCaption}\item[{const geometry\+\_\+msgs\+::\+Pose\+Stamped\+Ptr \&}]{msg }\end{DoxyParamCaption})}
+
+
+
+Funzione callback chiamata dopo la ricezione del messaggio dal nodo del planning, inizializza la posa finale in base ai valori del messaggio. In aggiunta setta la variabile flag \textquotesingle{}pickup\+\_\+flag\textquotesingle{} per segnalare al loop principale di eseguire il movimento. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em msg} & messaggio proveniente dal nodo \textquotesingle{}action\+\_\+controller\+\_\+node\textquotesingle{} \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{motion__planner__node_8cpp_a3fb468c8404de768b7718baf3afffe7c}\label{motion__planner__node_8cpp_a3fb468c8404de768b7718baf3afffe7c}} 
+\index{motion\_planner\_node.cpp@{motion\_planner\_node.cpp}!place@{place}}
+\index{place@{place}!motion\_planner\_node.cpp@{motion\_planner\_node.cpp}}
+\doxysubsubsection{\texorpdfstring{place()}{place()}}
+{\footnotesize\ttfamily void place (\begin{DoxyParamCaption}\item[{ros\+::\+Publisher}]{gripper\+\_\+pub }\end{DoxyParamCaption})}
+
+
+
+Funzione che esegue il movimento in sequenza del braccio, chiamando le apposite funzioni, per il posizionamento dei blocchi (con collisioni) 
+
+
+\begin{DoxyParams}{Parameters}
+{\em gripper\+\_\+pub} & publisher R\+OS utlilzzato per l\textquotesingle{}invio di messaggi nel topic \textquotesingle{}gripper\+\_\+controller\+\_\+cmd\textquotesingle{}. Usato solo in ambiente reale \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{motion__planner__node_8cpp_a5710f4e95f3dbf7c91d89838745acc71}\label{motion__planner__node_8cpp_a5710f4e95f3dbf7c91d89838745acc71}} 
+\index{motion\_planner\_node.cpp@{motion\_planner\_node.cpp}!place\_callback@{place\_callback}}
+\index{place\_callback@{place\_callback}!motion\_planner\_node.cpp@{motion\_planner\_node.cpp}}
+\doxysubsubsection{\texorpdfstring{place\_callback()}{place\_callback()}}
+{\footnotesize\ttfamily void place\+\_\+callback (\begin{DoxyParamCaption}\item[{const geometry\+\_\+msgs\+::\+Pose\+Stamped\+Ptr \&}]{msg }\end{DoxyParamCaption})}
+
+
+
+Funzione callback chiamata dopo la ricezione del messaggio dal nodo del planning, inizializza la posa finale in base ai valori del messaggio. In aggiunta setta la variabile flag \textquotesingle{}place\+\_\+flag\textquotesingle{} per segnalare al loop principale di eseguire il movimento. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em msg} & messaggio proveniente dal nodo \textquotesingle{}action\+\_\+controller\+\_\+node\textquotesingle{} \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{motion__planner__node_8cpp_ab3b2ee5dbf47d7ba57716e68e1c3eb28}\label{motion__planner__node_8cpp_ab3b2ee5dbf47d7ba57716e68e1c3eb28}} 
+\index{motion\_planner\_node.cpp@{motion\_planner\_node.cpp}!removeCollision@{removeCollision}}
+\index{removeCollision@{removeCollision}!motion\_planner\_node.cpp@{motion\_planner\_node.cpp}}
+\doxysubsubsection{\texorpdfstring{removeCollision()}{removeCollision()}}
+{\footnotesize\ttfamily void remove\+Collision (\begin{DoxyParamCaption}\item[{int}]{sig }\end{DoxyParamCaption})}
+
+
+
+Funzione che rimuove le collisioni dalla scena Move\+It! 
+
+
+\begin{DoxyParams}{Parameters}
+{\em sig} & numero del segnale \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{motion__planner__node_8cpp_ad20897c5c8bd47f5d4005989bead0e55}\label{motion__planner__node_8cpp_ad20897c5c8bd47f5d4005989bead0e55}} 
+\index{motion\_planner\_node.cpp@{motion\_planner\_node.cpp}!reset@{reset}}
+\index{reset@{reset}!motion\_planner\_node.cpp@{motion\_planner\_node.cpp}}
+\doxysubsubsection{\texorpdfstring{reset()}{reset()}}
+{\footnotesize\ttfamily void reset (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Funzione che esegue il movimento in sequenza del braccio, chiamando le apposite funzioni, per il posizionamento di default del manipolatore. 
+
+\mbox{\Hypertarget{motion__planner__node_8cpp_a0c40266d9f81945e7305b9f706067772}\label{motion__planner__node_8cpp_a0c40266d9f81945e7305b9f706067772}} 
+\index{motion\_planner\_node.cpp@{motion\_planner\_node.cpp}!robot\_constraints@{robot\_constraints}}
+\index{robot\_constraints@{robot\_constraints}!motion\_planner\_node.cpp@{motion\_planner\_node.cpp}}
+\doxysubsubsection{\texorpdfstring{robot\_constraints()}{robot\_constraints()}}
+{\footnotesize\ttfamily void robot\+\_\+constraints (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Funzione che inizializza le costrizioni dei vari valori dei joint e orientazione dell\textquotesingle{}end-\/effector del braccio, valori testati in modo da limitare il braccio all\textquotesingle{}area di lavoro per favorire soluzioni \textquotesingle{}ottimali\textquotesingle{} dell\textquotesingle{}inverse kinematics. 
+
+\mbox{\Hypertarget{motion__planner__node_8cpp_a792e44f027d5c332de077c7d367714ef}\label{motion__planner__node_8cpp_a792e44f027d5c332de077c7d367714ef}} 
+\index{motion\_planner\_node.cpp@{motion\_planner\_node.cpp}!rotate\_end\_effector@{rotate\_end\_effector}}
+\index{rotate\_end\_effector@{rotate\_end\_effector}!motion\_planner\_node.cpp@{motion\_planner\_node.cpp}}
+\doxysubsubsection{\texorpdfstring{rotate\_end\_effector()}{rotate\_end\_effector()}}
+{\footnotesize\ttfamily void rotate\+\_\+end\+\_\+effector (\begin{DoxyParamCaption}\item[{int}]{joint\+\_\+number,  }\item[{double}]{amount }\end{DoxyParamCaption})}
+
+
+
+Funzione che assegna ad un determinato joint un valore passato come parametro (consultare il file U\+R\+DF del robot per maggiori informazioni, numerazione crescente) 
+
+
+\begin{DoxyParams}{Parameters}
+{\em joint\+\_\+number} & il numero del joint del robot su cui agire \\
+\hline
+{\em amount} & angolo che avrà {\itshape joint\+\_\+number} dopo il movimento \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{motion__planner__node_8cpp_a7d6c18e17b9d822531a159010049d175}\label{motion__planner__node_8cpp_a7d6c18e17b9d822531a159010049d175}} 
+\index{motion\_planner\_node.cpp@{motion\_planner\_node.cpp}!select\_arm\_motion\_plan@{select\_arm\_motion\_plan}}
+\index{select\_arm\_motion\_plan@{select\_arm\_motion\_plan}!motion\_planner\_node.cpp@{motion\_planner\_node.cpp}}
+\doxysubsubsection{\texorpdfstring{select\_arm\_motion\_plan()}{select\_arm\_motion\_plan()}}
+{\footnotesize\ttfamily void select\+\_\+arm\+\_\+motion\+\_\+plan (\begin{DoxyParamCaption}\item[{geometry\+\_\+msgs\+::\+Pose}]{target }\end{DoxyParamCaption})}
+
+
+
+Funzione che sceglie se far passare il braccio per il punto medio oppure no. Il passaggio avviene supponendo di divirere il tavolo di lavoro in due metà rispetto all\textquotesingle{}origine del robot\+: se origine e destinazione si trovano sulla stessa metà allora non serve passare per il waypoint. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em target} & posa (X, Y, Z, x, y, z, w) che dovrà avere l\textquotesingle{}end-\/effector del braccio al termine del movimento \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{motion__planner__node_8cpp_a4fc01d736fe50cf5b977f755b675f11d}\label{motion__planner__node_8cpp_a4fc01d736fe50cf5b977f755b675f11d}} 
+\index{motion\_planner\_node.cpp@{motion\_planner\_node.cpp}!setup@{setup}}
+\index{setup@{setup}!motion\_planner\_node.cpp@{motion\_planner\_node.cpp}}
+\doxysubsubsection{\texorpdfstring{setup()}{setup()}}
+{\footnotesize\ttfamily void setup (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Funzone che inizializza le variabili globali e i puntatori. 
+
+\mbox{\Hypertarget{motion__planner__node_8cpp_a58022b8f2c367ce7aadd52ee20ad7095}\label{motion__planner__node_8cpp_a58022b8f2c367ce7aadd52ee20ad7095}} 
+\index{motion\_planner\_node.cpp@{motion\_planner\_node.cpp}!stack\_callback@{stack\_callback}}
+\index{stack\_callback@{stack\_callback}!motion\_planner\_node.cpp@{motion\_planner\_node.cpp}}
+\doxysubsubsection{\texorpdfstring{stack\_callback()}{stack\_callback()}}
+{\footnotesize\ttfamily void stack\+\_\+callback (\begin{DoxyParamCaption}\item[{const geometry\+\_\+msgs\+::\+Pose\+Stamped\+Ptr \&}]{msg }\end{DoxyParamCaption})}
+
+
+
+Funzione callback chiamata dopo la ricezione del messaggio dal nodo del planning, inizializza la posa finale in base ai valori del messaggio. In aggiunta setta la variabile flag \textquotesingle{}stack\+\_\+flag\textquotesingle{} per segnalare al loop principale di eseguire il movimento. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em msg} & messaggio proveniente dal nodo \textquotesingle{}action\+\_\+controller\+\_\+node\textquotesingle{} \\
+\hline
+\end{DoxyParams}

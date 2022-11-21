@@ -38,17 +38,17 @@
 
 // Definisco le costanti necessarie (utile averle anche se non usate)
 
-#define SIMULATION true
+#define SIMULATION false
 
-#define MAX_VELOCITY_SCALING_FACTOR 0.35
-#define MAX_ACCELLERATION_SCALING_FACTOR 0.35
+#define MAX_VELOCITY_SCALING_FACTOR 0.55
+#define MAX_ACCELLERATION_SCALING_FACTOR 0.55
 
 #define CARTESIAN_MAX_VELOCITY_SCALING_FACTOR 0.05
 #define CARTESIAN_MAX_ACCELLERATION_SCALING_FACTOR 0.05
 
 #define Z_BASE_LINK 1.791
 #define Z_DESK 0.8675
-#define Z_MIN 1.025
+#define Z_MIN 1.035
 #define Z_INCREMENT 0.05
 
 #define BUFFER_CUBE_ROWS 2
@@ -261,9 +261,8 @@ void robot_constraints()
 }
 
 /**
- * @brief Funzione che aggiunge il blocco specificato a Gazebo
+ * @brief Funzione che aggiunge il cubo specificato a Gazebo
  *
- * @param client client ROS utilizzato per aggiungere gli oggetti
  * @param pose posa (X, Y, Z, x, y, z, w) dell'oggetto da aggiungere
  * @param index indice dell'oggetto da aggiungere
  */
@@ -273,7 +272,7 @@ void add_cube(geometry_msgs::Pose pose, int index)
     gazebo_msgs::SpawnModel model;
     geometry_msgs::Pose local = pose;
 
-    local.position.z = local.position.z - 0.12;
+    local.position.z = local.position.z - 0.155;
     model.request.initial_pose = local;
 
     // Leggo il file .sdf
@@ -303,9 +302,8 @@ void add_cube(geometry_msgs::Pose pose, int index)
 }
 
 /**
- * @brief Funzione che aggiunge il blocco specificato a Gazebo
+ * @brief Funzione che aggiunge il parallelepipedo specificato a Gazebo
  *
- * @param client client ROS utilizzato per aggiungere gli oggetti
  * @param pose posa (X, Y, Z, x, y, z, w) dell'oggetto da aggiungere
  * @param index indice dell'oggetto da aggiungere
  */
@@ -315,7 +313,7 @@ void add_parallelepiped(geometry_msgs::Pose pose, int index)
     gazebo_msgs::SpawnModel model;
     geometry_msgs::Pose local = pose;
 
-    local.position.z = local.position.z - 0.12;
+    local.position.z = local.position.z - 0.155;
     model.request.initial_pose = local;
 
     // Leggo il file .sdf
@@ -435,7 +433,7 @@ void removeCollision(int sig)
  * @param counter variabile che tiene conto del numero dei blocchi inseriti (0, n-1)
  *
  * @return posa target dell'end-effector per il posizionamento del blocco nel buffer,
- *         vuota in caso di buffer pieno
+ *         nulla in caso di buffer pieno
  */
 
 geometry_msgs::Pose get_buffer_target(int counter)
@@ -542,7 +540,7 @@ geometry_msgs::Pose get_buffer_target(int counter)
  *
  * @param target posa (X, Y, Z, x, y, z, w) dell'oggetto da trovare nelle collisioni
  *
- * @return int contenente l'indice della collision, 0 in caso di errore
+ * @return int contenente l'indice della collision, -1 in caso di errore
  */
 
 int get_index_from_buffer_pose(geometry_msgs::Pose target)
@@ -559,8 +557,7 @@ int get_index_from_buffer_pose(geometry_msgs::Pose target)
     for (i = object_poses.begin(); i != object_poses.end(); i++)
     {
         if (std::abs(i->second.position.x - local.position.x) <= 0.001 &&
-            std::abs(i->second.position.y - local.position.y) <= 0.001 &&
-            std::abs(i->second.position.z - local.position.z) <= 0.001)
+            std::abs(i->second.position.y - local.position.y) <= 0.001)
         {
             // Ho trovato l'oggetto, estraggo l'id dal nome
             std::string s = i->first;
@@ -1325,8 +1322,8 @@ void place(ros::Publisher gripper_pub)
 
     geometry_msgs::Pose local = point;
 
-    // 0.145 = Z_MIN - [Z_DESK + (CUBE_MEASURE / 2.0)]
-    local.position.z = local.position.z - 0.145;
+    // 0.16 = Z_MIN - [Z_DESK + (CUBE_MEASURE / 2.0)]
+    local.position.z = local.position.z - 0.155;
 
     block_collision.object.primitives.clear();
     block_collision.object.primitive_poses.clear();
